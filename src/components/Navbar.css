@@ -379,3 +379,34 @@
     height: 44px;
   }
 }
+
+/* Very small screens: hide brand name so action icons have room */
+@media (max-width: 430px) {
+  .navbar__container {
+    padding-left: 12px;
+    padding-right: 12px;
+  }
+
+  .navbar__logo-text {
+    display: none;
+  }
+
+  .navbar__actions {
+    gap: 6px;
+    flex-shrink: 0;
+  }
+
+  .navbar__call-btn {
+    padding: 6px 8px;
+    flex-shrink: 0;
+  }
+
+  .navbar__cart-btn {
+    padding: 6px;
+    flex-shrink: 0;
+  }
+
+  .navbar__hamburger {
+    flex-shrink: 0;
+  }
+}

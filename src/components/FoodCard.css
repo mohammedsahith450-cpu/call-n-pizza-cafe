@@ -155,3 +155,22 @@
   background: rgba(255, 255, 255, 0.03);
   cursor: not-allowed;
 }
+
+/* Mobile: shorten button text to "Order" */
+@media (max-width: 768px) {
+  .food-card__add-btn:not(.food-card__add-btn--disabled):not(.food-card__add-btn--added) {
+    font-size: 0;
+    color: transparent;
+  }
+
+  .food-card__add-btn:not(.food-card__add-btn--disabled):not(.food-card__add-btn--added)::after {
+    content: 'Order';
+    font-size: 0.85rem;
+    font-weight: 600;
+    color: var(--color-accent);
+  }
+
+  .food-card__add-btn:not(.food-card__add-btn--disabled):not(.food-card__add-btn--added):hover::after {
+    color: #fff;
+  }
+}
