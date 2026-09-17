@@ -12,7 +12,7 @@ Modern, responsive customer-facing website for **Call N Pizza Cafe**, built with
 - **WhatsApp Order**: [https://wa.me/919944399984](https://wa.me/919944399984)
 - **Instagram**: [https://www.instagram.com/call_n_plzza_cafe](https://www.instagram.com/call_n_plzza_cafe?utm_source=ig_web_button_share_sheet&stkn=ZDNlZDc0MzIxNw==)
 - **YouTube**: [https://youtube.com/@callnpizzacafe](https://youtube.com/@callnpizzacafe?si=IOiLp_V5zweGuSmY)
-- **Location**: NU Complex, Iravancheri Main Road, Vishnupuram
+- **Location**: Eravanchery, Manavalanallur, Tamil Nadu 609501
 - **Hours**: 10:00 AM – 10:00 PM, Every Day
 - **Certifications**: 100% Halal Certified | Home Delivery Available
 

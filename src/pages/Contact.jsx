@@ -166,7 +166,7 @@ export default function Contact() {
                   </div>
                   <div>
                     <h4>Home Delivery</h4>
-                    <p>Home delivery available across Vishnupuram & surrounding areas</p>
+                    <p>Home delivery available across Eravanchery, Manavalanallur, Tamil Nadu 609501 & surrounding areas</p>
                   </div>
                 </div>
 
