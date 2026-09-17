@@ -12,9 +12,13 @@ class RestaurantSettingsService {
     try {
       const stored = localStorage.getItem(SETTINGS_STORAGE_KEY);
       if (stored) {
+        const parsed = JSON.parse(stored);
+        if (parsed.address && (parsed.address.includes('NU Complex') || parsed.address.includes('Vishnupuram') || parsed.address.includes('Iravancheri Main'))) {
+          parsed.address = 'Eravanchery, Manavalanallur, Tamil Nadu 609501';
+        }
         return {
           ...this.getDefaults(),
-          ...JSON.parse(stored),
+          ...parsed,
         };
       }
     } catch (e) {

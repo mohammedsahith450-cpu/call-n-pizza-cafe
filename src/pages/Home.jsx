@@ -1,15 +1,16 @@
 import { Link } from 'react-router-dom';
 import {
-  Phone,
-  Clock,
   MapPin,
+  Clock,
   Car,
-  ShieldCheck,
   Utensils,
-  Sparkles,
-  Smile,
   Truck,
+  Smile,
+  ShieldCheck,
   Flame,
+  Pizza,
+  BookOpen,
+  PhoneCall,
 } from 'lucide-react';
 import restaurantConfig from '../config/restaurantConfig';
 import { useMenu } from '../context/MenuContext';
@@ -81,12 +82,21 @@ export default function Home() {
 
   return (
     <main className="home" id="home-page">
-      {/* ── Modern Hero Section ────────────────── */}
+      {/* ── Modern Premium Hero Section ────────────────── */}
       <section className="hero" id="hero">
-        <div className="hero__decor-circle" />
-        <div className="container hero__grid">
-          {/* Left Column: Brand & Details */}
-          <div className="hero__left animate-fade-in-up">
+        {/* Dark readability gradient overlay on the left */}
+        <div className="hero__overlay" aria-hidden="true" />
+
+        <div className="container hero__container">
+          {/* Halal Badge positioned at top right */}
+          <div className="hero__halal-pill" id="hero-halal-badge">
+            <ShieldCheck size={20} className="hero__halal-icon" />
+            <span>100% Halal Certified</span>
+          </div>
+
+          {/* Left Column Content Area */}
+          <div className="hero__content animate-fade-in-up">
+            {/* Logo and Status Badges */}
             <div className="hero__brand-header">
               <div className="hero__logo-wrapper">
                 <img
@@ -95,74 +105,79 @@ export default function Home() {
                   className="hero__logo"
                 />
               </div>
-              <div className="hero__brand-meta">
+              <div className="hero__brand-badges">
                 <span className="hero__badge">
-                  <Flame size={14} /> Fresh & Hot Pizzas
+                  <Flame size={15} /> FRESH &amp; HOT PIZZAS
                 </span>
                 <span
-                  className={`hero-status-pill ${
-                    settings.isOpen ? 'hero-status-pill--open' : 'hero-status-pill--closed'
+                  className={`hero__status-pill ${
+                    settings.isOpen ? 'hero__status-pill--open' : 'hero__status-pill--closed'
                   }`}
                   id="hero-open-status"
                 >
-                  {settings.isOpen ? '🟢 Open Now' : '🔴 Currently Closed'}
+                  <span className="hero__status-dot" />
+                  {settings.isOpen ? 'Open Now' : 'Currently Closed'}
                 </span>
               </div>
             </div>
 
+            {/* Hero Main Headline */}
             <h1 className="hero__title">
-              Taste the Passion in <span className="hero__title-red">Every Slice</span>
+              Taste the Passion in <br className="hero__title-br" />
+              <span className="hero__title-red">Every Slice</span>
             </h1>
 
+            {/* Description Subtitle */}
             <p className="hero__subtitle">
               Welcome to <strong>{restaurantConfig.name}</strong>. Enjoy handcrafted artisan pizzas,
               flavour-packed burgers, crispy fried chicken, and delicious sides — freshly prepared
               with 100% Halal certified ingredients.
             </p>
 
-            {/* Address Banner */}
-            <div className="hero__address-pill">
+            {/* Exact Required Address Banner */}
+            <div className="hero__address-pill" id="hero-address">
               <MapPin size={18} className="hero__address-icon" />
               <span>{restaurantAddress}</span>
             </div>
 
-            {/* Call to Actions */}
+            {/* Action Buttons Row */}
             <div className="hero__buttons">
-              <Button variant="primary" size="lg" href="/menu" icon="🍕" id="hero-order-btn">
-                Order Now
-              </Button>
-              <Button variant="outline" size="lg" href="/menu" icon="📖" id="hero-menu-btn">
-                View Menu
-              </Button>
-              <Button
-                variant="whatsapp"
-                size="lg"
+              <Link to="/menu" className="hero-btn hero-btn--order" id="hero-order-btn">
+                <Pizza size={18} />
+                <span>Order Now</span>
+              </Link>
+              <Link to="/menu" className="hero-btn hero-btn--menu" id="hero-menu-btn">
+                <BookOpen size={18} className="hero-btn__menu-icon" />
+                <span>View Menu</span>
+              </Link>
+              <a
                 href={settings.whatsappUrl}
                 target="_blank"
-                icon="💬"
+                rel="noopener noreferrer"
+                className="hero-btn hero-btn--whatsapp"
                 id="hero-whatsapp-btn"
               >
-                WhatsApp Order
-              </Button>
-              <Button
-                variant="secondary"
-                size="lg"
+                <WhatsAppFilledIcon size={20} />
+                <span>WhatsApp Order</span>
+              </a>
+              <a
                 href={settings.phoneTel}
-                icon="📞"
+                className="hero-btn hero-btn--call"
                 id="hero-call-btn"
               >
-                Call: {settings.phone}
-              </Button>
+                <PhoneCall size={18} className="hero-btn__call-icon" />
+                <span>Call: {settings.phone}</span>
+              </a>
             </div>
 
-            {/* Social Links Row */}
+            {/* Social Media Pill Buttons */}
             <div className="hero__social-row">
               <span className="hero__social-label">Follow Us:</span>
               <a
                 href={restaurantConfig.facebookUrl}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="hero__social-btn hero__social-btn--facebook"
+                className="hero__social-pill hero__social-pill--facebook"
                 id="hero-facebook-link"
                 title="Follow Call N Pizza Cafe on Facebook"
                 aria-label="Facebook"
@@ -174,7 +189,7 @@ export default function Home() {
                 href={restaurantConfig.instagramUrl}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="hero__social-btn hero__social-btn--instagram"
+                className="hero__social-pill hero__social-pill--instagram"
                 id="hero-instagram-link"
                 title="Follow Call N Pizza Cafe on Instagram"
                 aria-label="Instagram"
@@ -186,7 +201,7 @@ export default function Home() {
                 href={restaurantConfig.youtubeUrl}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="hero__social-btn hero__social-btn--youtube"
+                className="hero__social-pill hero__social-pill--youtube"
                 id="hero-youtube-link"
                 title="Watch Call N Pizza Cafe on YouTube"
                 aria-label="YouTube"
@@ -197,23 +212,9 @@ export default function Home() {
             </div>
           </div>
 
-          {/* Right Column: Visual Hero Food Image Banner */}
-          <div className="hero__right animate-fade-in-up delay-1">
-            <div className="hero__image-card">
-              <img
-                src="/images/hero-pizza.jpg"
-                alt="Delicious Gourmet Pizza, Burger and Fried Chicken at Call N Pizza Cafe"
-                className="hero__food-img"
-              />
-              <div className="hero__image-badge hero__image-badge--top">
-                <Sparkles size={16} />
-                <span>100% Halal Certified</span>
-              </div>
-              <div className="hero__image-badge hero__image-badge--bottom">
-                <span className="hero__badge-price">Fast Delivery</span>
-                <span className="hero__badge-sub">Eravanchery & nearby</span>
-              </div>
-            </div>
+          {/* Distressed Red Brush Ribbon Badge on Bottom Right */}
+          <div className="hero__brush-ribbon" aria-hidden="true">
+            <span className="hero__brush-text">MORE PIZZA IS IMPOSSIBLE</span>
           </div>
         </div>
       </section>
