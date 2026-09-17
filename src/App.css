@@ -42,7 +42,11 @@
 }
 
 .floating-btn--call {
-  background: linear-gradient(135deg, #e67e22, #d35400);
+  background: var(--color-accent);
+}
+
+.floating-btn--call:hover {
+  background: var(--color-accent-hover);
 }
 
 .floating-btn--whatsapp {
@@ -52,7 +56,7 @@
 
 .floating-btn:hover {
   transform: translateY(-3px) scale(1.08);
-  box-shadow: 0 8px 22px rgba(0, 0, 0, 0.6);
+  box-shadow: 0 8px 22px rgba(211, 47, 47, 0.4);
   color: #ffffff;
 }
 
@@ -62,8 +66,8 @@
   right: 56px;
   top: 50%;
   transform: translateY(-50%) translateX(6px);
-  background: rgba(18, 18, 18, 0.95);
-  border: 1px solid var(--color-border);
+  background: #111827;
+  border: 1px solid rgba(255, 255, 255, 0.15);
   color: #ffffff;
   font-size: 0.75rem;
   font-weight: 600;
@@ -74,7 +78,7 @@
   opacity: 0;
   visibility: hidden;
   transition: all var(--transition-fast);
-  box-shadow: var(--shadow-sm);
+  box-shadow: var(--shadow-md);
 }
 
 .floating-btn-wrap:hover .floating-tooltip {

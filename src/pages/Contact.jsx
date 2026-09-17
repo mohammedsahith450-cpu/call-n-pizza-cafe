@@ -1,6 +1,11 @@
 import { useState } from 'react';
 import { PhoneCall, MapPin, Clock, Car, ShieldCheck } from 'lucide-react';
-import { WhatsAppFilledIcon, InstagramIcon, YoutubeIcon } from '../components/icons/SocialIcons';
+import {
+  WhatsAppFilledIcon,
+  FacebookIcon,
+  InstagramIcon,
+  YoutubeIcon,
+} from '../components/icons/SocialIcons';
 import restaurantConfig from '../config/restaurantConfig';
 import { useRestaurantSettings } from '../context/RestaurantSettingsContext';
 import SectionHeading from '../components/SectionHeading';
@@ -30,6 +35,7 @@ export default function Contact() {
   };
 
   const displayHours = settings.openingHours || `${settings.openingTime} – ${settings.closingTime}`;
+  const restaurantAddress = settings.address || restaurantConfig.address;
 
   return (
     <main className="contact-page" id="contact-page">
@@ -38,7 +44,7 @@ export default function Contact() {
         <div className="container">
           <SectionHeading
             title="Contact Us"
-            subtitle="Order freshly baked pizzas, crispy fried chicken & burgers, or visit our cafe in Vishnupuram"
+            subtitle="Order freshly baked pizzas, crispy fried chicken & burgers, or visit our cafe in Eravanchery, Manavalanallur"
           />
 
           {/* ── Clean Compact Icon Actions ── */}
@@ -84,10 +90,22 @@ export default function Contact() {
             {/* Social Links */}
             <div className="contact-social-row">
               <a
+                href={restaurantConfig.facebookUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="contact-social-icon-btn contact-social-icon-btn--facebook"
+                id="contact-facebook-btn"
+                title="Follow Call N Pizza Cafe on Facebook"
+                aria-label="Facebook"
+              >
+                <FacebookIcon size={18} />
+                <span>Facebook</span>
+              </a>
+              <a
                 href={restaurantConfig.instagramUrl}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="contact-social-icon-btn"
+                className="contact-social-icon-btn contact-social-icon-btn--instagram"
                 id="contact-instagram-btn"
                 title="Follow us on Instagram"
                 aria-label="Instagram"
@@ -99,7 +117,7 @@ export default function Contact() {
                 href={restaurantConfig.youtubeUrl}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="contact-social-icon-btn"
+                className="contact-social-icon-btn contact-social-icon-btn--youtube"
                 id="contact-youtube-btn"
                 title="Watch our YouTube Channel"
                 aria-label="YouTube"
@@ -127,7 +145,7 @@ export default function Contact() {
                   </div>
                   <div>
                     <h4>Address</h4>
-                    <p>{restaurantConfig.address}</p>
+                    <p>{restaurantAddress}</p>
                     <p className="contact-info-tamil">{restaurantConfig.addressTamil}</p>
                   </div>
                 </div>

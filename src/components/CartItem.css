@@ -4,9 +4,10 @@
   justify-content: space-between;
   gap: var(--space-md);
   padding: var(--space-md);
-  background: var(--color-bg);
+  background: #ffffff;
   border-radius: var(--radius-md);
   border: 1px solid var(--color-border);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.03);
 }
 
 .cart-item__info {
@@ -18,9 +19,9 @@
 }
 
 .cart-item__name {
-  font-size: 0.9rem;
-  font-weight: 600;
-  color: var(--color-text);
+  font-size: 0.92rem;
+  font-weight: 700;
+  color: #111827;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -29,12 +30,12 @@
 .cart-item__size {
   font-size: 0.75rem;
   color: var(--color-accent);
-  font-weight: 500;
+  font-weight: 600;
 }
 
 .cart-item__price {
   font-size: 0.75rem;
-  color: var(--color-text-muted);
+  color: var(--color-text-secondary);
 }
 
 .cart-item__controls {
@@ -48,9 +49,10 @@
   display: flex;
   align-items: center;
   gap: 0;
-  border: 1px solid var(--color-border-light);
+  border: 1px solid var(--color-border);
   border-radius: var(--radius-sm);
   overflow: hidden;
+  background: #ffffff;
 }
 
 .cart-item__qty-btn {
@@ -59,13 +61,13 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  background: var(--color-bg-card);
-  color: var(--color-text);
+  background: #f9fafb;
+  color: #111827;
   font-size: 1rem;
   font-weight: 600;
   cursor: pointer;
   border: none;
-  transition: background var(--transition-fast);
+  transition: all var(--transition-fast);
 }
 
 .cart-item__qty-btn:hover {
@@ -78,13 +80,13 @@
   text-align: center;
   font-size: 0.85rem;
   font-weight: 700;
-  color: var(--color-text);
+  color: #111827;
 }
 
 .cart-item__subtotal {
-  font-size: 0.9rem;
-  font-weight: 700;
-  color: var(--color-accent-light);
+  font-size: 0.92rem;
+  font-weight: 800;
+  color: var(--color-accent);
   min-width: 50px;
   text-align: right;
 }
@@ -105,8 +107,8 @@
 }
 
 .cart-item__remove:hover {
-  background: var(--color-error);
-  color: #fff;
+  background: #fee2e2;
+  color: var(--color-error);
 }
 
 /* ── Responsive ──────────────────────────── */

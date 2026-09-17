@@ -3,10 +3,12 @@ import SectionHeading from '../components/SectionHeading';
 import Lightbox from '../components/Lightbox';
 import Button from '../components/Button';
 import restaurantConfig from '../config/restaurantConfig';
+import { useRestaurantSettings } from '../context/RestaurantSettingsContext';
 import { galleryService } from '../services/galleryService';
 import './Gallery.css';
 
 export default function Gallery() {
+  const { settings } = useRestaurantSettings();
   const [galleryImages, setGalleryImages] = useState(() => galleryService.getPublicItems());
   const [activeFilter, setActiveFilter] = useState('All');
   const [selectedImage, setSelectedImage] = useState(null);
@@ -101,21 +103,21 @@ export default function Gallery() {
               <Button
                 variant="whatsapp"
                 size="lg"
-                href={restaurantConfig.whatsappUrl}
+                href={settings.whatsappUrl}
                 target="_blank"
                 icon="💬"
                 id="gallery-whatsapp-btn"
               >
-                WhatsApp Order ({restaurantConfig.phoneDisplay})
+                WhatsApp Order ({settings.phone})
               </Button>
               <Button
                 variant="outline"
                 size="lg"
-                href={restaurantConfig.phoneTel}
+                href={settings.phoneTel}
                 icon="📞"
                 id="gallery-call-btn"
               >
-                Call Now ({restaurantConfig.phoneDisplay})
+                Call Now ({settings.phone})
               </Button>
             </div>
           </div>

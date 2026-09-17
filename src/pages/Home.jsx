@@ -1,31 +1,73 @@
+import { Link } from 'react-router-dom';
+import {
+  Phone,
+  Clock,
+  MapPin,
+  Car,
+  ShieldCheck,
+  Utensils,
+  Sparkles,
+  Smile,
+  Truck,
+  Flame,
+} from 'lucide-react';
 import restaurantConfig from '../config/restaurantConfig';
 import { useMenu } from '../context/MenuContext';
 import { useRestaurantSettings } from '../context/RestaurantSettingsContext';
 import SectionHeading from '../components/SectionHeading';
 import FoodCard from '../components/FoodCard';
 import Button from '../components/Button';
+import {
+  FacebookIcon,
+  InstagramIcon,
+  YoutubeIcon,
+  WhatsAppFilledIcon,
+} from '../components/icons/SocialIcons';
 import './Home.css';
+
+const highlights = [
+  {
+    icon: <Utensils size={22} className="home-hl__icon" />,
+    title: 'Delicious Food',
+    desc: 'Artisan pizzas, burgers & crispy chicken made fresh to order',
+  },
+  {
+    icon: <Truck size={22} className="home-hl__icon" />,
+    title: 'Fast Delivery',
+    desc: 'Prompt home delivery hot and fresh to your door',
+  },
+  {
+    icon: <ShieldCheck size={22} className="home-hl__icon" />,
+    title: 'Halal Certified',
+    desc: '100% Halal certified meats & genuine ingredients',
+  },
+  {
+    icon: <Smile size={22} className="home-hl__icon" />,
+    title: 'Happy Customers',
+    desc: 'Loved by families & food lovers across the region',
+  },
+];
 
 const whyChooseUs = [
   {
     icon: '☪',
     title: 'Halal Certified',
-    desc: 'All our meat and ingredients are 100% Halal certified for your peace of mind.',
+    desc: 'All our meat and ingredients are 100% Halal certified for your complete peace of mind.',
   },
   {
     icon: '🍕',
-    title: 'Fresh Ingredients',
-    desc: 'We use only the freshest ingredients, prepared daily for maximum flavour.',
+    title: 'Delicious Pizzas & Burgers',
+    desc: 'Handcrafted fresh dough, rich sauces, premium cheese, and mouthwatering toppings daily.',
   },
   {
-    icon: '🚗',
-    title: 'Home Delivery',
-    desc: 'Get your favourite food delivered right to your doorstep.',
+    icon: '⚡',
+    title: 'Fast Delivery',
+    desc: 'Hot and fresh doorstep delivery to ensure you enjoy every single bite at its best.',
   },
   {
-    icon: '⭐',
-    title: 'Premium Quality',
-    desc: 'Every dish is crafted with care to deliver a restaurant-quality experience.',
+    icon: '❤️',
+    title: 'Happy Customers',
+    desc: 'Serving high quality meals that keep thousands of local foodies smiling.',
   },
 ];
 
@@ -35,152 +77,261 @@ export default function Home() {
   const featuredItems = items.filter((item) => item.featured && item.available !== false);
 
   const displayHours = settings.openingHours || `${settings.openingTime} – ${settings.closingTime}`;
+  const restaurantAddress = settings.address || restaurantConfig.address;
 
   return (
     <main className="home" id="home-page">
-      {/* ── Hero ─────────────────────────────── */}
+      {/* ── Modern Hero Section ────────────────── */}
       <section className="hero" id="hero">
-        <div className="hero__bg" />
-        <div className="hero__content container">
-          <div className="hero__logo-wrapper animate-fade-in-up">
-            <img
-              src={restaurantConfig.logo}
-              alt={restaurantConfig.name}
-              className="hero__logo"
-            />
-          </div>
+        <div className="hero__decor-circle" />
+        <div className="container hero__grid">
+          {/* Left Column: Brand & Details */}
+          <div className="hero__left animate-fade-in-up">
+            <div className="hero__brand-header">
+              <div className="hero__logo-wrapper">
+                <img
+                  src={restaurantConfig.logo}
+                  alt={restaurantConfig.name}
+                  className="hero__logo"
+                />
+              </div>
+              <div className="hero__brand-meta">
+                <span className="hero__badge">
+                  <Flame size={14} /> Fresh & Hot Pizzas
+                </span>
+                <span
+                  className={`hero-status-pill ${
+                    settings.isOpen ? 'hero-status-pill--open' : 'hero-status-pill--closed'
+                  }`}
+                  id="hero-open-status"
+                >
+                  {settings.isOpen ? '🟢 Open Now' : '🔴 Currently Closed'}
+                </span>
+              </div>
+            </div>
 
-          {/* Dynamic Open / Closed Status Pill */}
-          <div className="hero__status-badge-wrap animate-fade-in-up">
-            <span
-              className={`hero-status-pill ${settings.isOpen ? 'hero-status-pill--open' : 'hero-status-pill--closed'}`}
-              id="hero-open-status"
-            >
-              {settings.isOpen ? '🟢 Open Now' : '🔴 Currently Closed'}
-            </span>
-          </div>
+            <h1 className="hero__title">
+              Taste the Passion in <span className="hero__title-red">Every Slice</span>
+            </h1>
 
-          <h1 className="hero__title animate-fade-in-up delay-1">
-            {restaurantConfig.name}
-          </h1>
-          <p className="hero__subtitle animate-fade-in-up delay-2">
-            Delicious Pizzas, Burgers, Fried Chicken & More — Freshly Made, Halal Certified
-          </p>
-          <div className="hero__buttons animate-fade-in-up delay-3">
-            <Button variant="primary" size="lg" href="/menu" icon="🍕" id="hero-menu-btn">
-              View Menu
-            </Button>
-            <Button
-              variant="whatsapp"
-              size="lg"
-              href={settings.whatsappUrl}
-              target="_blank"
-              icon="💬"
-              id="hero-whatsapp-btn"
-            >
-              WhatsApp Order
-            </Button>
-            <Button
-              variant="outline"
-              size="lg"
-              href={settings.phoneTel}
-              icon="📞"
-              id="hero-call-btn"
-            >
-              Call Now ({settings.phone})
-            </Button>
-          </div>
-          <div className="hero__info animate-fade-in-up delay-4">
-            <div className="hero__info-item">
-              <span className="hero__info-icon">📞</span>
-              <a href={settings.phoneTel} style={{ color: 'inherit', textDecoration: 'none' }}>
-                {settings.phone}
+            <p className="hero__subtitle">
+              Welcome to <strong>{restaurantConfig.name}</strong>. Enjoy handcrafted artisan pizzas,
+              flavour-packed burgers, crispy fried chicken, and delicious sides — freshly prepared
+              with 100% Halal certified ingredients.
+            </p>
+
+            {/* Address Banner */}
+            <div className="hero__address-pill">
+              <MapPin size={18} className="hero__address-icon" />
+              <span>{restaurantAddress}</span>
+            </div>
+
+            {/* Call to Actions */}
+            <div className="hero__buttons">
+              <Button variant="primary" size="lg" href="/menu" icon="🍕" id="hero-order-btn">
+                Order Now
+              </Button>
+              <Button variant="outline" size="lg" href="/menu" icon="📖" id="hero-menu-btn">
+                View Menu
+              </Button>
+              <Button
+                variant="whatsapp"
+                size="lg"
+                href={settings.whatsappUrl}
+                target="_blank"
+                icon="💬"
+                id="hero-whatsapp-btn"
+              >
+                WhatsApp Order
+              </Button>
+              <Button
+                variant="secondary"
+                size="lg"
+                href={settings.phoneTel}
+                icon="📞"
+                id="hero-call-btn"
+              >
+                Call: {settings.phone}
+              </Button>
+            </div>
+
+            {/* Social Links Row */}
+            <div className="hero__social-row">
+              <span className="hero__social-label">Follow Us:</span>
+              <a
+                href={restaurantConfig.facebookUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="hero__social-btn hero__social-btn--facebook"
+                id="hero-facebook-link"
+                title="Follow Call N Pizza Cafe on Facebook"
+                aria-label="Facebook"
+              >
+                <FacebookIcon size={18} />
+                <span>Facebook</span>
+              </a>
+              <a
+                href={restaurantConfig.instagramUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="hero__social-btn hero__social-btn--instagram"
+                id="hero-instagram-link"
+                title="Follow Call N Pizza Cafe on Instagram"
+                aria-label="Instagram"
+              >
+                <InstagramIcon size={18} />
+                <span>Instagram</span>
+              </a>
+              <a
+                href={restaurantConfig.youtubeUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="hero__social-btn hero__social-btn--youtube"
+                id="hero-youtube-link"
+                title="Watch Call N Pizza Cafe on YouTube"
+                aria-label="YouTube"
+              >
+                <YoutubeIcon size={18} />
+                <span>YouTube</span>
               </a>
             </div>
-            <div className="hero__info-item">
-              <span className="hero__info-icon">🕐</span>
-              <span>{displayHours}</span>
-            </div>
-            <div className="hero__info-item">
-              <span className="hero__info-icon">🚗</span>
-              <span>Home Delivery Available</span>
-            </div>
-            <div className="hero__info-item">
-              <span className="hero__info-icon">☪</span>
-              <span>Halal Certified</span>
+          </div>
+
+          {/* Right Column: Visual Hero Food Image Banner */}
+          <div className="hero__right animate-fade-in-up delay-1">
+            <div className="hero__image-card">
+              <img
+                src="/images/hero-pizza.jpg"
+                alt="Delicious Gourmet Pizza, Burger and Fried Chicken at Call N Pizza Cafe"
+                className="hero__food-img"
+              />
+              <div className="hero__image-badge hero__image-badge--top">
+                <Sparkles size={16} />
+                <span>100% Halal Certified</span>
+              </div>
+              <div className="hero__image-badge hero__image-badge--bottom">
+                <span className="hero__badge-price">Fast Delivery</span>
+                <span className="hero__badge-sub">Eravanchery & nearby</span>
+              </div>
             </div>
           </div>
         </div>
       </section>
 
+      {/* ── 4 Key Highlights Section ───────────── */}
+      <section className="home__highlights-section">
+        <div className="container">
+          <div className="home__highlights-grid">
+            {highlights.map((h, i) => (
+              <div key={i} className="home-hl__card">
+                <div className="home-hl__icon-box">{h.icon}</div>
+                <div className="home-hl__info">
+                  <h3 className="home-hl__title">{h.title}</h3>
+                  <p className="home-hl__desc">{h.desc}</p>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
       {/* ── Featured Food ────────────────────── */}
-      <section className="section" id="featured-food">
+      <section className="section home__featured-section" id="featured-food">
         <div className="container">
           <SectionHeading
-            title="Our Specialties"
-            subtitle="The most popular items from our menu, loved by thousands of customers"
+            title="Chef's Special Picks"
+            subtitle="The most popular items from our menu, loved by thousands of happy customers"
           />
           <div className="home__featured-grid">
             {featuredItems.slice(0, 8).map((item, i) => (
-              <div key={item.id} className="animate-fade-in-up" style={{ animationDelay: `${i * 0.08}s` }}>
+              <div
+                key={item.id}
+                className="animate-fade-in-up"
+                style={{ animationDelay: `${i * 0.06}s` }}
+              >
                 <FoodCard item={item} />
               </div>
             ))}
           </div>
           <div className="home__featured-cta">
-            <Button variant="outline" size="lg" href="/menu" icon="📖">
+            <Button variant="primary" size="lg" href="/menu" icon="📖">
               View Full Menu
             </Button>
           </div>
         </div>
       </section>
 
-      {/* ── About ────────────────────────────── */}
-      <section className="section section--alt" id="about-section">
+      {/* ── About Us Section ─────────────────── */}
+      <section className="section section--alt home__about-section" id="about-section">
         <div className="container">
           <div className="home__about">
             <div className="home__about-content">
-              <SectionHeading title="About Us" centered={false} />
+              <span className="home__section-tag">Authentic Taste</span>
+              <SectionHeading title="About Call N Pizza Cafe" centered={false} />
               <p className="home__about-text">
-                Welcome to <strong>{restaurantConfig.name}</strong> — your favourite destination for
-                mouth-watering pizzas, juicy burgers, crispy fried chicken, steaming momos, and refreshing
-                beverages in Vishnupuram.
+                Welcome to <strong>{restaurantConfig.name}</strong> — your ultimate destination for
+                mouth-watering pizzas, crispy fried chicken, juicy burgers, steaming momos, and chilled
+                beverages in Eravanchery, Manavalanallur.
               </p>
               <p className="home__about-text">
-                We take pride in serving 100% Halal certified food made from the freshest ingredients.
-                Whether you're dining in or ordering delivery, we promise a delicious experience every time.
+                Every meal is prepared with fresh ingredients, crafted with care, and 100% Halal
+                certified. Whether you are dining with family, taking away, or ordering quick home
+                delivery, we guarantee exceptional quality and friendly service every time.
               </p>
               <div className="home__about-features">
                 <div className="home__about-feature">
-                  <span>📍</span>
-                  <span>{restaurantConfig.address}</span>
+                  <MapPin size={20} className="home__feature-icon" />
+                  <div>
+                    <strong>Address:</strong> {restaurantAddress}
+                  </div>
                 </div>
                 <div className="home__about-feature">
-                  <span>🕐</span>
-                  <span>Open {displayHours}, {settings.daysOpen}</span>
+                  <Clock size={20} className="home__feature-icon" />
+                  <div>
+                    <strong>Working Hours:</strong> Open {displayHours}, {settings.daysOpen}
+                  </div>
+                </div>
+                <div className="home__about-feature">
+                  <Car size={20} className="home__feature-icon" />
+                  <div>
+                    <strong>Home Delivery:</strong> Available across Eravanchery & nearby locations
+                  </div>
                 </div>
               </div>
             </div>
             <div className="home__about-image-area">
-              <img src={restaurantConfig.logo} alt={restaurantConfig.name} className="home__about-logo" />
+              <div className="home__about-img-frame">
+                <img
+                  src="/images/pizza-dish.jpg"
+                  alt={restaurantConfig.name}
+                  className="home__about-img"
+                />
+                <div className="home__about-logo-stamp">
+                  <img
+                    src={restaurantConfig.logo}
+                    alt={restaurantConfig.name}
+                    className="home__about-stamp-img"
+                  />
+                </div>
+              </div>
             </div>
           </div>
         </div>
       </section>
 
       {/* ── Why Choose Us ────────────────────── */}
-      <section className="section" id="why-choose-us">
+      <section className="section home__why-section" id="why-choose-us">
         <div className="container">
           <SectionHeading
             title="Why Choose Us"
-            subtitle="What makes Call N Pizza Cafe the best choice for your next meal"
+            subtitle="What makes Call N Pizza Cafe your favourite neighborhood food spot"
           />
           <div className="home__why-grid">
             {whyChooseUs.map((item, i) => (
               <div
                 key={i}
                 className="home__why-card animate-fade-in-up"
-                style={{ animationDelay: `${i * 0.1}s` }}
+                style={{ animationDelay: `${i * 0.08}s` }}
               >
                 <span className="home__why-icon">{item.icon}</span>
                 <h3 className="home__why-title">{item.title}</h3>
@@ -191,22 +342,22 @@ export default function Home() {
         </div>
       </section>
 
-      {/* ── CTA ──────────────────────────────── */}
+      {/* ── Call To Action ───────────────────── */}
       <section className="home__cta section" id="cta-section">
         <div className="container">
-          <div className="home__cta-content">
-            <h2 className="home__cta-title">Craving Something Delicious?</h2>
+          <div className="home__cta-card">
+            <h2 className="home__cta-title">Ready for Fresh & Delicious Pizza?</h2>
             <p className="home__cta-subtitle">
-              Order now and enjoy our mouth-watering food — delivered fresh to your doorstep!
+              Order now on WhatsApp or call our friendly counter for quick doorstep delivery!
             </p>
             <div className="home__cta-buttons">
-              <Button variant="primary" size="lg" href="/menu" icon="📖" id="cta-menu-btn">
-                View Menu
+              <Button variant="primary" size="lg" href="/menu" icon="🍕" id="cta-menu-btn">
+                Order Now
               </Button>
               <Button
                 variant="whatsapp"
                 size="lg"
-                href={restaurantConfig.whatsappUrl}
+                href={settings.whatsappUrl}
                 target="_blank"
                 icon="💬"
                 id="cta-whatsapp-btn"
@@ -216,12 +367,43 @@ export default function Home() {
               <Button
                 variant="outline"
                 size="lg"
-                href={restaurantConfig.phoneTel}
+                href={settings.phoneTel}
                 icon="📞"
                 id="cta-call-btn"
               >
-                Call Now ({restaurantConfig.phoneDisplay})
+                Call: {settings.phone}
               </Button>
+            </div>
+            {/* Social media connections */}
+            <div className="home__cta-socials">
+              <span>Connect with us:</span>
+              <a
+                href={restaurantConfig.facebookUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="home__cta-soc-btn"
+                title="Facebook"
+              >
+                <FacebookIcon size={16} /> Facebook
+              </a>
+              <a
+                href={restaurantConfig.instagramUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="home__cta-soc-btn"
+                title="Instagram"
+              >
+                <InstagramIcon size={16} /> Instagram
+              </a>
+              <a
+                href={restaurantConfig.youtubeUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="home__cta-soc-btn"
+                title="YouTube"
+              >
+                <YoutubeIcon size={16} /> YouTube
+              </a>
             </div>
           </div>
         </div>
@@ -229,3 +411,4 @@ export default function Home() {
     </main>
   );
 }
+

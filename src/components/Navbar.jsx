@@ -134,14 +134,14 @@ export default function Navbar() {
             </ul>
             <div className="navbar__mobile-actions">
               <a
-                href={restaurantConfig.phoneTel}
+                href={settings.phoneTel}
                 className="navbar__mobile-call-btn"
                 id="nav-mobile-call-btn"
               >
-                <Phone size={18} /> Call {restaurantConfig.phoneDisplay}
+                <Phone size={18} /> Call {settings.phone}
               </a>
               <a
-                href={restaurantConfig.whatsappUrl}
+                href={settings.whatsappUrl}
                 target="_blank"
                 rel="noopener noreferrer"
                 className="navbar__mobile-whatsapp-btn"
@@ -150,7 +150,7 @@ export default function Navbar() {
                 <WhatsAppFilledIcon size={18} /> WhatsApp Order
               </a>
               <Link to="/menu" className="navbar__mobile-order-btn" onClick={() => setIsMenuOpen(false)}>
-                View Menu & Order
+                Order Now
               </Link>
               <button className="navbar__mobile-cart-btn" onClick={() => { setIsCartOpen(true); setIsMenuOpen(false); }}>
                 <ShoppingBag size={18} /> View Cart {itemCount > 0 && `(${itemCount})`}

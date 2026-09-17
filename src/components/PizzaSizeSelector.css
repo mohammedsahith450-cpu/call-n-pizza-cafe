@@ -11,8 +11,8 @@
   align-items: center;
   gap: 2px;
   padding: 8px 6px;
-  background: var(--color-bg);
-  border: 1.5px solid var(--color-border-light);
+  background: #ffffff;
+  border: 1.5px solid var(--color-border);
   border-radius: var(--radius-sm);
   cursor: pointer;
   transition: all var(--transition-fast);
@@ -20,16 +20,17 @@
 
 .size-selector__btn:hover {
   border-color: var(--color-accent);
+  background: var(--color-accent-subtle);
 }
 
 .size-selector__btn--active {
-  background: var(--color-accent-subtle);
+  background: #ffebee;
   border-color: var(--color-accent);
 }
 
 .size-selector__label {
-  font-size: 0.7rem;
-  font-weight: 600;
+  font-size: 0.72rem;
+  font-weight: 700;
   text-transform: uppercase;
   letter-spacing: 0.05em;
   color: var(--color-text-secondary);
@@ -40,11 +41,12 @@
 }
 
 .size-selector__price {
-  font-size: 0.8rem;
-  font-weight: 700;
+  font-size: 0.82rem;
+  font-weight: 800;
   color: var(--color-text);
 }
 
 .size-selector__btn--active .size-selector__price {
-  color: var(--color-accent-light);
+  color: var(--color-accent);
 }
+

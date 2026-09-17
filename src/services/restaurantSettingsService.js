@@ -40,7 +40,7 @@ class RestaurantSettingsService {
       whatsappUrl: `https://wa.me/91${rawPhone}`,
       isHalal: restaurantConfig.isHalal !== false,
       homeDelivery: restaurantConfig.homeDelivery !== false,
-      address: restaurantConfig.address || 'NU Complex, Iravancheri Main Road, Vishnupuram',
+      address: restaurantConfig.address || 'Eravanchery, Manavalanallur, Tamil Nadu 609501',
     };
   }
 

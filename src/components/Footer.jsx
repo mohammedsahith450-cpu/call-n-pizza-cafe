@@ -1,6 +1,11 @@
 import { Link } from 'react-router-dom';
 import { Phone, Clock, MapPin, Car, ShieldCheck } from 'lucide-react';
-import { WhatsAppFilledIcon, InstagramIcon, YoutubeIcon } from './icons/SocialIcons';
+import {
+  WhatsAppFilledIcon,
+  FacebookIcon,
+  InstagramIcon,
+  YoutubeIcon,
+} from './icons/SocialIcons';
 import restaurantConfig from '../config/restaurantConfig';
 import { useRestaurantSettings } from '../context/RestaurantSettingsContext';
 import './Footer.css';
@@ -16,6 +21,7 @@ export default function Footer() {
   const currentYear = new Date().getFullYear();
   const { settings } = useRestaurantSettings();
   const displayHours = settings.openingHours || `${settings.openingTime} – ${settings.closingTime}`;
+  const restaurantAddress = settings.address || restaurantConfig.address;
 
   return (
     <footer className="footer" id="footer">
@@ -45,9 +51,9 @@ export default function Footer() {
             </ul>
           </div>
 
-          {/* Contact */}
+          {/* Contact & Social */}
           <div className="footer__section">
-            <h4 className="footer__heading">Contact</h4>
+            <h4 className="footer__heading">Contact & Connect</h4>
             <ul className="footer__contact">
               <li>
                 <span className="footer__contact-icon">
@@ -63,6 +69,14 @@ export default function Footer() {
                 </span>
                 <a href={settings.whatsappUrl} target="_blank" rel="noopener noreferrer" className="footer__link" id="footer-whatsapp-link">
                   WhatsApp Order
+                </a>
+              </li>
+              <li>
+                <span className="footer__contact-icon">
+                  <FacebookIcon size={16} />
+                </span>
+                <a href={restaurantConfig.facebookUrl} target="_blank" rel="noopener noreferrer" className="footer__link" id="footer-facebook-link">
+                  Facebook
                 </a>
               </li>
               <li>
@@ -98,7 +112,7 @@ export default function Footer() {
                 <span className="footer__contact-icon">
                   <MapPin size={16} />
                 </span>
-                <span>{restaurantConfig.address}</span>
+                <span>{restaurantAddress}</span>
               </p>
               {restaurantConfig.homeDelivery && (
                 <p className="footer__delivery">

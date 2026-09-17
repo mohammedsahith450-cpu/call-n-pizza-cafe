@@ -1,31 +1,33 @@
 .footer {
-  background: var(--color-bg-card);
+  background: #f8fafc;
   border-top: 1px solid var(--color-border);
   padding: var(--space-3xl) 0 var(--space-lg);
 }
 
 .footer__grid {
   display: grid;
-  grid-template-columns: 1.5fr 1fr 1fr 1.2fr;
+  grid-template-columns: 1.5fr 1fr 1.2fr 1.2fr;
   gap: var(--space-2xl);
   margin-bottom: var(--space-2xl);
 }
 
 /* Brand */
 .footer__logo {
-  width: 60px;
-  height: 60px;
+  width: 54px;
+  height: 54px;
   border-radius: 50%;
   overflow: hidden;
   object-fit: cover;
   margin-bottom: var(--space-md);
   display: block;
+  border: 1px solid var(--color-border);
 }
 
 .footer__name {
-  font-family: var(--font-display);
-  font-size: 1.25rem;
-  font-weight: 700;
+  font-family: var(--font-primary);
+  font-size: 1.2rem;
+  font-weight: 800;
+  color: #111827;
   margin-bottom: var(--space-sm);
 }
 
@@ -41,18 +43,19 @@
   align-items: center;
   gap: 6px;
   font-size: 0.8rem;
-  color: var(--color-success);
-  font-weight: 600;
+  color: #16a34a;
+  background: #dcfce7;
+  font-weight: 700;
   padding: 4px 12px;
-  border: 1px solid var(--color-success);
+  border: 1px solid #bbf7d0;
   border-radius: var(--radius-sm);
 }
 
 /* Sections */
 .footer__heading {
-  font-size: 0.95rem;
-  font-weight: 700;
-  color: var(--color-text);
+  font-size: 0.92rem;
+  font-weight: 800;
+  color: #111827;
   margin-bottom: var(--space-lg);
   text-transform: uppercase;
   letter-spacing: 0.05em;

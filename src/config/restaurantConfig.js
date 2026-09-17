@@ -24,19 +24,20 @@ const restaurantConfig = {
   whatsappUrl: 'https://wa.me/919944399984',
 
   // ── Social Media ───────────────────────────
+  facebookUrl: 'https://www.facebook.com/share/1EtbTovVuG/',
   instagramUrl:
     'https://www.instagram.com/call_n_plzza_cafe?utm_source=ig_web_button_share_sheet&stkn=ZDNlZDc0MzIxNw==',
   youtubeUrl:
     'https://youtube.com/@callnpizzacafe?si=IOiLp_V5zweGuSmY',
   googleMapsUrl:
-    'https://maps.google.com/?q=NU+Complex,+Iravancheri+Main+Road,+Vishnupuram',
+    'https://maps.google.com/?q=Eravanchery,+Manavalanallur,+Tamil+Nadu+609501',
 
   // ── Website ────────────────────────────────
   website: 'www.callnpizzacafe.com',
 
   // ── Location ───────────────────────────────
-  address: 'NU Complex, Iravancheri Main Road, Vishnupuram',
-  addressTamil: 'NU காம்ப்ளெக்ஸ், இரவாஞ்செரி மெயின்ரோடு, விஷ்ணுபுரம்',
+  address: 'Eravanchery, Manavalanallur, Tamil Nadu 609501',
+  addressTamil: 'எரவாஞ்சேரி, மணவாளநல்லூர், தமிழ்நாடு 609501',
 
   // ── Operating Hours ────────────────────────
   openingHours: '10:00 AM – 10:00 PM',

@@ -22,13 +22,14 @@
   align-items: center;
   gap: var(--space-sm);
   padding: 10px 20px;
-  background: var(--color-bg-card);
+  background: #ffffff;
   border: 1.5px solid var(--color-border);
   border-radius: var(--radius-xl);
   cursor: pointer;
   transition: all var(--transition-fast);
   white-space: nowrap;
   flex-shrink: 0;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
 }
 
 .category-filter__btn:hover {
@@ -39,6 +40,7 @@
 .category-filter__btn--active {
   background: var(--color-accent);
   border-color: var(--color-accent);
+  box-shadow: 0 2px 8px rgba(211, 47, 47, 0.3);
 }
 
 .category-filter__icon {
@@ -46,19 +48,20 @@
 }
 
 .category-filter__label {
-  font-size: 0.85rem;
-  font-weight: 600;
-  color: var(--color-text-secondary);
+  font-size: 0.88rem;
+  font-weight: 700;
+  color: #374151;
 }
 
 .category-filter__btn--active .category-filter__label {
-  color: #fff;
+  color: #ffffff;
 }
 
 .category-filter__btn:hover .category-filter__label {
-  color: var(--color-text);
+  color: var(--color-accent);
 }
 
 .category-filter__btn--active:hover .category-filter__label {
-  color: #fff;
+  color: #ffffff;
 }
+
