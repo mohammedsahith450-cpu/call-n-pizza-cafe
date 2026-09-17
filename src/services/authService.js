@@ -1,67 +1,165 @@
 /**
  * Admin Authentication Service
- * Manages admin session and persistent password changes in localStorage.
+ * Exclusively uses Supabase Auth.
+ * Never stores passwords in localStorage or sessionStorage.
+ * Does not permit unauthenticated/demo bypasses.
  */
 
-const AUTH_STORAGE_KEY = 'call_n_pizza_admin_auth';
-const PASSWORD_STORAGE_KEY = 'call_n_pizza_admin_password';
-
-// Default passwords allowed before the admin sets a custom password
-const DEFAULT_PASSWORDS = ['admin', 'admin123', 'pizza123', ''];
+import { supabase, isSupabaseConfigured } from '../lib/supabase';
 
 class AuthService {
-  /**
-   * Check whether admin is currently authenticated in this session.
-   */
-  isAuthenticated() {
-    return sessionStorage.getItem(AUTH_STORAGE_KEY) === 'true';
+  constructor() {
+    this.currentSession = null;
+    this.currentUser = null;
+    this.isInitialized = false;
+    this.authListeners = [];
+
+    if (isSupabaseConfigured && supabase) {
+      // 1. Initial session retrieval
+      supabase.auth.getSession().then(({ data: { session } }) => {
+        this.currentSession = session;
+        this.currentUser = session?.user || null;
+        this.isInitialized = true;
+        this.notifyListeners(session);
+      }).catch((err) => {
+        console.warn('[AuthService] Error retrieving initial session:', err);
+        this.isInitialized = true;
+      });
+
+      // 2. Real-time auth state listener
+      supabase.auth.onAuthStateChange((event, session) => {
+        this.currentSession = session;
+        this.currentUser = session?.user || null;
+        this.notifyListeners(session);
+      });
+    } else {
+      this.isInitialized = true;
+    }
   }
 
-  /**
-   * Verify an input password against stored custom password or defaults.
-   */
-  verifyPassword(input) {
-    const stored = localStorage.getItem(PASSWORD_STORAGE_KEY);
-    if (stored !== null) {
-      return input === stored;
-    }
-    return DEFAULT_PASSWORDS.includes(input);
+  notifyListeners(session) {
+    this.authListeners.forEach((listener) => {
+      try {
+        listener(session);
+      } catch (e) {
+        console.error('[AuthService] Listener error:', e);
+      }
+    });
   }
 
-  /**
-   * Log in with password.
-   */
-  login(inputPassword) {
-    if (this.verifyPassword(inputPassword)) {
-      sessionStorage.setItem(AUTH_STORAGE_KEY, 'true');
-      return { success: true };
+  onAuthStateChange(callback) {
+    this.authListeners.push(callback);
+    // Call immediately with current session
+    if (this.isInitialized) {
+      callback(this.currentSession);
     }
-    return {
-      success: false,
-      error: 'Invalid password. (Hint: default is "admin" or leave blank if unchanged)',
+    return () => {
+      this.authListeners = this.authListeners.filter((cb) => cb !== callback);
     };
   }
 
   /**
-   * Log out current admin.
+   * Check whether admin has an active, valid Supabase session.
    */
-  logout() {
-    sessionStorage.removeItem(AUTH_STORAGE_KEY);
+  isAuthenticated() {
+    return Boolean(this.currentSession);
   }
 
   /**
-   * Change admin password with strength & confirmation validation.
+   * Get current Supabase user.
    */
-  changePassword(currentPassword, newPassword, confirmPassword) {
-    // 1. Verify current password
-    if (!this.verifyPassword(currentPassword)) {
+  async getSupabaseUser() {
+    if (!isSupabaseConfigured || !supabase) return null;
+    try {
+      const { data } = await supabase.auth.getUser();
+      return data?.user || this.currentUser;
+    } catch {
+      return this.currentUser;
+    }
+  }
+
+  /**
+   * Get current session.
+   */
+  async getSession() {
+    if (!isSupabaseConfigured || !supabase) return null;
+    try {
+      const { data } = await supabase.auth.getSession();
+      return data?.session || this.currentSession;
+    } catch {
+      return this.currentSession;
+    }
+  }
+
+  /**
+   * Get admin email display.
+   */
+  getAdminEmail() {
+    return this.currentUser?.email || this.currentSession?.user?.email || 'admin';
+  }
+
+  /**
+   * Authenticate strictly using Supabase Auth (email & password).
+   */
+  async login(email, password) {
+    if (!isSupabaseConfigured || !supabase) {
       return {
         success: false,
-        error: 'Current password is incorrect.',
+        error: 'Supabase client is not configured. Please check .env settings.',
       };
     }
 
-    // 2. Validate new password length / strength
+    if (!email || !email.trim()) {
+      return { success: false, error: 'Admin email is required.' };
+    }
+
+    if (!password) {
+      return { success: false, error: 'Password is required.' };
+    }
+
+    try {
+      const { data, error } = await supabase.auth.signInWithPassword({
+        email: email.trim(),
+        password,
+      });
+
+      if (error) {
+        return {
+          success: false,
+          error: error.message || 'Invalid email or password.',
+        };
+      }
+
+      this.currentSession = data.session;
+      this.currentUser = data.user;
+      return { success: true, user: data.user };
+    } catch (err) {
+      return {
+        success: false,
+        error: err.message || 'Supabase authentication request failed.',
+      };
+    }
+  }
+
+  /**
+   * Log out current admin from Supabase Auth.
+   */
+  async logout() {
+    if (isSupabaseConfigured && supabase) {
+      try {
+        await supabase.auth.signOut();
+      } catch (e) {
+        console.warn('Error signing out of Supabase:', e);
+      }
+    }
+    this.currentSession = null;
+    this.currentUser = null;
+  }
+
+  /**
+   * Change admin password via Supabase Auth without saving in localStorage.
+   */
+  async changePassword(currentPassword, newPassword, confirmPassword) {
     if (!newPassword || newPassword.trim().length < 6) {
       return {
         success: false,
@@ -69,7 +167,6 @@ class AuthService {
       };
     }
 
-    // 3. Verify match
     if (newPassword !== confirmPassword) {
       return {
         success: false,
@@ -77,26 +174,28 @@ class AuthService {
       };
     }
 
-    // 4. Save to persistent storage
-    try {
-      localStorage.setItem(PASSWORD_STORAGE_KEY, newPassword);
-      return {
-        success: true,
-        message: 'Password changed successfully! Please remember your new password.',
-      };
-    } catch (e) {
+    if (!this.isAuthenticated()) {
       return {
         success: false,
-        error: `Could not save password: ${e.message}`,
+        error: 'You must be logged in as an authenticated Supabase admin to change the password.',
       };
     }
-  }
 
-  /**
-   * Reset password to default (for recovery).
-   */
-  resetToDefault() {
-    localStorage.removeItem(PASSWORD_STORAGE_KEY);
+    try {
+      const { error } = await supabase.auth.updateUser({ password: newPassword });
+      if (error) {
+        return { success: false, error: error.message };
+      }
+      return {
+        success: true,
+        message: 'Password updated successfully in Supabase Auth!',
+      };
+    } catch (err) {
+      return {
+        success: false,
+        error: err.message || 'Could not update password via Supabase Auth.',
+      };
+    }
   }
 }
 

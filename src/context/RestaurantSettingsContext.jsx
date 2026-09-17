@@ -7,6 +7,13 @@ export function RestaurantSettingsProvider({ children }) {
   const [settings, setSettings] = useState(() => restaurantSettingsService.getSettings());
 
   useEffect(() => {
+    let isMounted = true;
+    restaurantSettingsService.fetchSettings().then((remote) => {
+      if (isMounted && remote) {
+        setSettings(remote);
+      }
+    });
+
     const handleUpdate = (e) => {
       if (e.detail) {
         setSettings(e.detail);
@@ -19,6 +26,7 @@ export function RestaurantSettingsProvider({ children }) {
     window.addEventListener('storage', handleUpdate);
 
     return () => {
+      isMounted = false;
       window.removeEventListener('restaurant-settings-updated', handleUpdate);
       window.removeEventListener('storage', handleUpdate);
     };

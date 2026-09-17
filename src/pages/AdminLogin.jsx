@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Link, useNavigate, Navigate } from 'react-router-dom';
 import restaurantConfig from '../config/restaurantConfig';
 import { authService } from '../services/authService';
@@ -6,24 +6,40 @@ import './Admin.css';
 
 export default function AdminLogin() {
   const navigate = useNavigate();
-  const isAuthenticated = authService.isAuthenticated();
+  const [isAuthenticated, setIsAuthenticated] = useState(() => authService.isAuthenticated());
 
+  const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [loginError, setLoginError] = useState('');
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
-  // If already authenticated, redirect immediately to /admin
+  // Synchronize with auth service state changes (session restoration)
+  useEffect(() => {
+    const unsubscribe = authService.onAuthStateChange((session) => {
+      setIsAuthenticated(Boolean(session));
+    });
+    return unsubscribe;
+  }, []);
+
+  // If already authenticated with Supabase, redirect immediately to /admin
   if (isAuthenticated) {
     return <Navigate to="/admin" replace />;
   }
 
-  const handleLogin = (e) => {
+  const handleLogin = async (e) => {
     e.preventDefault();
-    const result = authService.login(password);
-    if (result.success) {
-      setLoginError('');
-      navigate('/admin', { replace: true });
-    } else {
-      setLoginError(result.error || 'Invalid password.');
+    setLoginError('');
+    setIsSubmitting(true);
+
+    try {
+      const result = await authService.login(email, password);
+      if (result.success) {
+        navigate('/admin', { replace: true });
+      } else {
+        setLoginError(result.error || 'Authentication failed. Please check your credentials.');
+      }
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
@@ -40,25 +56,47 @@ export default function AdminLogin() {
 
         <form onSubmit={handleLogin} className="admin-login-form">
           <div className="form-group">
-            <label htmlFor="admin-pass">Admin Password / PIN</label>
+            <label htmlFor="admin-email">Admin Email</label>
             <input
-              type="password"
-              id="admin-pass"
-              placeholder="Enter password (demo: press Enter)"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
+              type="email"
+              id="admin-email"
+              placeholder="e.g. admin@callnpizzacafe.com"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
               className="form-input"
+              autoComplete="email"
+              required
               autoFocus
             />
           </div>
+
+          <div className="form-group">
+            <label htmlFor="admin-pass">Admin Password</label>
+            <input
+              type="password"
+              id="admin-pass"
+              placeholder="Enter your Supabase admin password"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              className="form-input"
+              autoComplete="current-password"
+              required
+            />
+          </div>
+
           {loginError && <p className="admin-error">{loginError}</p>}
-          <button type="submit" className="admin-btn admin-btn--primary">
-            Log In to Dashboard
+
+          <button
+            type="submit"
+            className="admin-btn admin-btn--primary"
+            disabled={isSubmitting}
+          >
+            {isSubmitting ? 'Verifying...' : 'Log In to Dashboard'}
           </button>
         </form>
 
         <p className="admin-login-hint">
-          Tip: Leave blank or enter <code>admin</code> for demo access.
+          Secured by Supabase Authentication. Enter your registered admin credentials.
         </p>
         <Link to="/" className="admin-back-link">
           ← Return to Website

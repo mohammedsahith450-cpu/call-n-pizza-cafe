@@ -3,10 +3,17 @@
  * GALLERY SERVICE
  * ============================================
  * Manages customer-facing food gallery images.
- * Uses localStorage persistence + reactive custom events.
- * Fully decoupled from Menu items.
+ * Connects to Supabase Database (gallery_items) with local cache fallback.
+ * 
+ * Mapping:
+ * - Frontend: hidden (boolean)
+ * - Supabase: visible (boolean)
+ *   visible = !hidden
+ *   hidden = !visible
  * ============================================
  */
+
+import { supabase, isSupabaseConfigured } from '../lib/supabase';
 
 const GALLERY_STORAGE_KEY = 'call_n_pizza_gallery_items';
 
@@ -152,7 +159,6 @@ export function compressAndProcessImage(file, maxDimension = 1200, quality = 0.8
         const ctx = canvas.getContext('2d');
         ctx.drawImage(img, 0, 0, width, height);
 
-        // Try webp, fallback to jpeg
         let dataUrl = '';
         try {
           dataUrl = canvas.toDataURL('image/webp', quality);
@@ -177,6 +183,7 @@ export function compressAndProcessImage(file, maxDimension = 1200, quality = 0.8
 }
 
 class GalleryService {
+  // ── Synchronous Cache Readers ────────────────────────────────
   getItems() {
     try {
       const stored = localStorage.getItem(GALLERY_STORAGE_KEY);
@@ -207,7 +214,45 @@ class GalleryService {
     }
   }
 
-  addItem(itemData) {
+  // ── Asynchronous Supabase Operations ─────────────────────────
+  async fetchItems() {
+    if (!isSupabaseConfigured || !supabase) {
+      return this.getItems();
+    }
+
+    try {
+      const { data, error } = await supabase
+        .from('gallery_items')
+        .select('*')
+        .order('created_at', { ascending: false });
+
+      if (error) {
+        console.warn('[Supabase] fetchGalleryItems error, using local data:', error.message);
+        return this.getItems();
+      }
+
+      if (Array.isArray(data) && data.length > 0) {
+        // Map database visible -> frontend hidden (!visible)
+        const formatted = data.map((row) => ({
+          id: row.id,
+          title: row.title || 'Untitled Dish',
+          category: row.category || 'Pizza',
+          image: row.image,
+          description: row.description || '',
+          hidden: row.visible !== undefined ? !row.visible : false,
+          createdAt: row.created_at ? new Date(row.created_at).getTime() : Date.now(),
+        }));
+        this.saveItems(formatted);
+        return formatted;
+      }
+    } catch (err) {
+      console.warn('[Supabase] Exception fetching gallery items:', err);
+    }
+
+    return this.getItems();
+  }
+
+  async addItem(itemData) {
     const items = this.getItems();
     const newItem = {
       id: itemData.id || `gal-${Date.now()}-${Math.floor(Math.random() * 1000)}`,
@@ -216,14 +261,35 @@ class GalleryService {
       description: itemData.description?.trim() || '',
       image: itemData.image,
       hidden: Boolean(itemData.hidden),
-      createdAt: Date.now(),
+      createdAt: itemData.createdAt || Date.now(),
     };
+
     const updated = [newItem, ...items];
     this.saveItems(updated);
+
+    if (isSupabaseConfigured && supabase) {
+      try {
+        const { data: sessionData } = await supabase.auth.getSession();
+        if (sessionData?.session) {
+          await supabase.from('gallery_items').upsert({
+            id: newItem.id,
+            title: newItem.title,
+            category: newItem.category,
+            image: newItem.image,
+            description: newItem.description,
+            visible: !newItem.hidden,
+            created_at: new Date(newItem.createdAt).toISOString(),
+          });
+        }
+      } catch (err) {
+        console.warn('[Supabase] Error saving gallery item:', err);
+      }
+    }
+
     return newItem;
   }
 
-  addMultipleItems(itemsArray) {
+  async addMultipleItems(itemsArray) {
     const items = this.getItems();
     const newItems = itemsArray.map((data, index) => ({
       id: data.id || `gal-${Date.now()}-${index}-${Math.floor(Math.random() * 1000)}`,
@@ -234,12 +300,34 @@ class GalleryService {
       hidden: Boolean(data.hidden),
       createdAt: Date.now() + index,
     }));
+
     const updated = [...newItems, ...items];
     this.saveItems(updated);
+
+    if (isSupabaseConfigured && supabase) {
+      try {
+        const { data: sessionData } = await supabase.auth.getSession();
+        if (sessionData?.session) {
+          const rows = newItems.map((item) => ({
+            id: item.id,
+            title: item.title,
+            category: item.category,
+            image: item.image,
+            description: item.description,
+            visible: !item.hidden,
+            created_at: new Date(item.createdAt).toISOString(),
+          }));
+          await supabase.from('gallery_items').upsert(rows);
+        }
+      } catch (err) {
+        console.warn('[Supabase] Error saving batch gallery items:', err);
+      }
+    }
+
     return newItems;
   }
 
-  updateItem(id, updates) {
+  async updateItem(id, updates) {
     const items = this.getItems();
     const index = items.findIndex((i) => i.id === id);
     if (index === -1) return null;
@@ -253,23 +341,70 @@ class GalleryService {
 
     items[index] = updatedItem;
     this.saveItems(items);
+
+    if (isSupabaseConfigured && supabase) {
+      try {
+        const { data: sessionData } = await supabase.auth.getSession();
+        if (sessionData?.session) {
+          const dbPayload = {
+            title: updatedItem.title,
+            category: updatedItem.category,
+            image: updatedItem.image,
+            description: updatedItem.description,
+          };
+          if (updatedItem.hidden !== undefined) {
+            dbPayload.visible = !updatedItem.hidden;
+          }
+          await supabase.from('gallery_items').update(dbPayload).eq('id', id);
+        }
+      } catch (err) {
+        console.warn('[Supabase] Error updating gallery item:', err);
+      }
+    }
+
     return updatedItem;
   }
 
-  deleteItem(id) {
+  async deleteItem(id) {
     const items = this.getItems();
     const updated = items.filter((i) => i.id !== id);
     this.saveItems(updated);
+
+    if (isSupabaseConfigured && supabase) {
+      try {
+        const { data: sessionData } = await supabase.auth.getSession();
+        if (sessionData?.session) {
+          await supabase.from('gallery_items').delete().eq('id', id);
+        }
+      } catch (err) {
+        console.warn('[Supabase] Error deleting gallery item:', err);
+      }
+    }
+
     return updated;
   }
 
-  toggleHidden(id) {
+  async toggleHidden(id) {
     const items = this.getItems();
     const index = items.findIndex((i) => i.id === id);
     if (index === -1) return null;
 
     items[index].hidden = !items[index].hidden;
     this.saveItems(items);
+
+    if (isSupabaseConfigured && supabase) {
+      try {
+        const { data: sessionData } = await supabase.auth.getSession();
+        if (sessionData?.session) {
+          await supabase.from('gallery_items').update({
+            visible: !items[index].hidden,
+          }).eq('id', id);
+        }
+      } catch (err) {
+        console.warn('[Supabase] Error toggling gallery item visibility:', err);
+      }
+    }
+
     return items[index];
   }
 

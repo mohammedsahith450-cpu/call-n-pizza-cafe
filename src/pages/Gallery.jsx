@@ -2,7 +2,6 @@ import { useState, useEffect } from 'react';
 import SectionHeading from '../components/SectionHeading';
 import Lightbox from '../components/Lightbox';
 import Button from '../components/Button';
-import restaurantConfig from '../config/restaurantConfig';
 import { useRestaurantSettings } from '../context/RestaurantSettingsContext';
 import { galleryService } from '../services/galleryService';
 import './Gallery.css';
@@ -14,12 +13,18 @@ export default function Gallery() {
   const [selectedImage, setSelectedImage] = useState(null);
 
   useEffect(() => {
+    let isMounted = true;
+    galleryService.fetchItems().then(() => {
+      if (isMounted) setGalleryImages(galleryService.getPublicItems());
+    });
+
     const handleUpdate = () => {
-      setGalleryImages(galleryService.getPublicItems());
+      if (isMounted) setGalleryImages(galleryService.getPublicItems());
     };
     window.addEventListener('gallery-updated', handleUpdate);
     window.addEventListener('storage', handleUpdate);
     return () => {
+      isMounted = false;
       window.removeEventListener('gallery-updated', handleUpdate);
       window.removeEventListener('storage', handleUpdate);
     };

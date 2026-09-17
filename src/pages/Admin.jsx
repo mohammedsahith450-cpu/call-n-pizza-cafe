@@ -34,6 +34,8 @@ import {
   validateImageFile,
   compressAndProcessImage,
 } from '../services/galleryService';
+import { uploadImageToStorage } from '../services/storageService';
+import { checkSupabaseConnection, migrateAllToSupabase } from '../services/migrationService';
 import './Admin.css';
 
 export default function Admin() {
@@ -61,12 +63,14 @@ export default function Admin() {
 
   // ── Authentication & Route Protection ─────────────────────
   const navigate = useNavigate();
-  const isAuthenticated = authService.isAuthenticated();
+  const [isAuthenticated, setIsAuthenticated] = useState(() => authService.isAuthenticated());
 
-  // If someone visits /admin without being authenticated, redirect them to /admin/login
-  if (!isAuthenticated) {
-    return <Navigate to="/admin/login" replace />;
-  }
+  useEffect(() => {
+    const unsubscribe = authService.onAuthStateChange((session) => {
+      setIsAuthenticated(Boolean(session));
+    });
+    return unsubscribe;
+  }, []);
 
   // ── Active Navigation Tab ─────────────────────────────────
   // 'menu' | 'gallery' | 'settings' | 'profile'
@@ -162,9 +166,45 @@ export default function Admin() {
   }, []);
 
   // ── Logout Handler ───────────────────────────────────────
-  const handleLogout = () => {
-    authService.logout();
+  const handleLogout = async () => {
+    await authService.logout();
     navigate('/admin/login', { replace: true });
+  };
+
+  // ── Supabase Status & Safe Migration State ────────────────
+  const [supabaseStatus, setSupabaseStatus] = useState({ checked: false, connected: false, message: '' });
+  const [isMigrating, setIsMigrating] = useState(false);
+  const [migrationStatusMsg, setMigrationStatusMsg] = useState('');
+
+  useEffect(() => {
+    checkSupabaseConnection().then(setSupabaseStatus);
+  }, []);
+
+  const handleRunMigration = async () => {
+    if (!authService.isAuthenticated()) {
+      alert('You must be signed in with an authenticated Supabase Admin account to perform cloud migration.');
+      return;
+    }
+    setIsMigrating(true);
+    setMigrationStatusMsg('Reading existing localStorage and preparing data...');
+    try {
+      const res = await migrateAllToSupabase();
+      if (res.success) {
+        setMigrationStatusMsg(
+          `✅ Successfully synced data to Supabase! (${res.results.categories} categories, ${res.results.menuItems} menu items, ${res.results.galleryItems} gallery items).`
+        );
+        showNotification('Data successfully synced to Supabase!');
+      } else {
+        setMigrationStatusMsg(
+          `⚠️ Migration notice: ${res.results?.errors?.join('; ') || res.error || 'Please ensure SQL setup script has been executed in Supabase SQL editor.'}`
+        );
+        showNotification('Sync finished with notes.');
+      }
+    } catch (err) {
+      setMigrationStatusMsg(`❌ Migration error: ${err.message}`);
+    } finally {
+      setIsMigrating(false);
+    }
   };
 
   // ==========================================================
@@ -230,7 +270,12 @@ export default function Admin() {
     setImageFileName(file.name);
     try {
       const result = await compressAndProcessImage(file, 1000, 0.82);
-      setPreviewImage(result.dataUrl);
+      let finalUrl = result.dataUrl;
+      const uploadRes = await uploadImageToStorage(result.dataUrl, 'menu', file.name);
+      if (uploadRes.success && uploadRes.url) {
+        finalUrl = uploadRes.url;
+      }
+      setPreviewImage(finalUrl);
     } catch (err) {
       alert(`Error processing image: ${err.message}`);
     }
@@ -256,14 +301,19 @@ export default function Admin() {
 
     try {
       const result = await compressAndProcessImage(file, 1000, 0.82);
-      updateItem(quickTargetItemId, { image: result.dataUrl });
+      let finalUrl = result.dataUrl;
+      const uploadRes = await uploadImageToStorage(result.dataUrl, 'menu', file.name);
+      if (uploadRes.success && uploadRes.url) {
+        finalUrl = uploadRes.url;
+      }
+      updateItem(quickTargetItemId, { image: finalUrl });
       showNotification('Menu image updated successfully!');
     } catch (err) {
       alert(`Error processing image: ${err.message}`);
     }
   };
 
-  const handleSaveItem = (e) => {
+  const handleSaveItem = async (e) => {
     e.preventDefault();
 
     if (!formName.trim()) {
@@ -299,11 +349,11 @@ export default function Admin() {
     };
 
     if (editingItem) {
-      updateItem(editingItem.id, payload);
+      await updateItem(editingItem.id, payload);
       showNotification(`"${payload.name}" updated successfully!`);
     } else {
       const newId = `${formCategory}-${Date.now()}`;
-      addItem({ id: newId, ...payload });
+      await addItem({ id: newId, ...payload });
       showNotification(`"${payload.name}" created successfully!`);
     }
 
@@ -316,7 +366,7 @@ export default function Admin() {
       else if (formCategory === 'fried-chicken' || formCategory === 'chicken-specials') galCat = 'Chicken';
       else if (formCategory === 'mojitos-juices' || formCategory === 'milkshakes') galCat = 'Beverages';
 
-      galleryService.addItem({
+      await galleryService.addItem({
         title: payload.name,
         category: galCat,
         description: payload.description || `${payload.name} from our fresh cafe menu`,
@@ -329,6 +379,7 @@ export default function Admin() {
 
     setIsModalOpen(false);
   };
+
 
   const filteredItems = items.filter((item) => {
     const matchesCat = selectedCategory === 'all' || item.category === selectedCategory;
@@ -379,6 +430,12 @@ export default function Admin() {
       const processedBatch = [];
       for (const file of validFiles) {
         const result = await compressAndProcessImage(file, 1200, 0.85);
+        let finalUrl = result.dataUrl;
+        const uploadRes = await uploadImageToStorage(result.dataUrl, 'gallery', file.name);
+        if (uploadRes.success && uploadRes.url) {
+          finalUrl = uploadRes.url;
+        }
+
         // Default clean title from file name
         const cleanTitle = file.name
           .replace(/\.[^/.]+$/, '')
@@ -387,7 +444,7 @@ export default function Admin() {
 
         processedBatch.push({
           id: `batch-${Date.now()}-${Math.random().toString(36).substring(2, 7)}`,
-          preview: result.dataUrl,
+          preview: finalUrl,
           title: cleanTitle,
           category: 'Pizza',
           description: '',
@@ -416,14 +473,14 @@ export default function Admin() {
     );
   };
 
-  const handleSaveGalleryBatch = () => {
+  const handleSaveGalleryBatch = async () => {
     if (uploadBatch.length === 0) {
       alert('Please select at least one image to upload.');
       return;
     }
 
-    // Save to gallery service (which writes to localStorage & dispatches event)
-    const newItems = galleryService.addMultipleItems(
+    // Save to gallery service (writes to localStorage & Supabase)
+    const newItems = await galleryService.addMultipleItems(
       uploadBatch.map((b) => ({
         title: b.title.trim() || 'Food Showcase',
         category: b.category,
@@ -462,14 +519,19 @@ export default function Admin() {
 
     try {
       const res = await compressAndProcessImage(file, 1200, 0.85);
-      setEditGalleryImage(res.dataUrl);
+      let finalUrl = res.dataUrl;
+      const uploadRes = await uploadImageToStorage(res.dataUrl, 'gallery', file.name);
+      if (uploadRes.success && uploadRes.url) {
+        finalUrl = uploadRes.url;
+      }
+      setEditGalleryImage(finalUrl);
       showNotification('New image loaded into preview.');
     } catch (err) {
       alert(`Could not process image: ${err.message}`);
     }
   };
 
-  const handleSaveGalleryEdit = (e) => {
+  const handleSaveGalleryEdit = async (e) => {
     e.preventDefault();
     if (!editingGalleryItem) return;
 
@@ -478,7 +540,7 @@ export default function Admin() {
       return;
     }
 
-    galleryService.updateItem(editingGalleryItem.id, {
+    await galleryService.updateItem(editingGalleryItem.id, {
       title: editGalleryTitle.trim(),
       category: editGalleryCategory,
       description: editGalleryDescription.trim(),
@@ -493,23 +555,23 @@ export default function Admin() {
   };
 
   // Delete Gallery Item with Confirmation
-  const handleDeleteGalleryItem = (item) => {
+  const handleDeleteGalleryItem = async (item) => {
     const confirmed = window.confirm(
       `Are you sure you want to delete "${item.title}" from the public gallery?\n\nThis will immediately remove it from the customer website.`
     );
     if (confirmed) {
-      galleryService.deleteItem(item.id);
+      await galleryService.deleteItem(item.id);
       setGalleryItems(galleryService.getItems());
       showNotification(`"${item.title}" deleted from Gallery`);
     }
   };
 
   // Toggle Visibility (Hide/Show)
-  const handleToggleGalleryVisibility = (item) => {
-    const updated = galleryService.toggleHidden(item.id);
+  const handleToggleGalleryVisibility = async (item) => {
+    const updated = await galleryService.toggleHidden(item.id);
     setGalleryItems(galleryService.getItems());
     showNotification(
-      `"${item.title}" is now ${updated.hidden ? 'Hidden' : 'Visible'} on the public gallery`
+      `"${item.title}" is now ${updated && updated.hidden ? 'Hidden' : 'Visible'} on the public gallery`
     );
   };
 
@@ -558,14 +620,14 @@ export default function Admin() {
   // ==========================================================
   // CATEGORY MANAGEMENT HANDLERS
   // ==========================================================
-  const handleAddCategorySubmit = (e) => {
+  const handleAddCategorySubmit = async (e) => {
     e.preventDefault();
     setCategoryError('');
     if (!newCatName.trim()) {
       setCategoryError('Please enter a category name');
       return;
     }
-    const res = addCategory({ name: newCatName.trim(), icon: newCatIcon.trim() || '🍽️' });
+    const res = await addCategory({ name: newCatName.trim(), icon: newCatIcon.trim() || '🍽️' });
     if (res.success) {
       setNewCatName('');
       setNewCatIcon('🍽️');
@@ -575,14 +637,14 @@ export default function Admin() {
     }
   };
 
-  const handleUpdateCategorySubmit = (e) => {
+  const handleUpdateCategorySubmit = async (e) => {
     e.preventDefault();
     setCategoryError('');
     if (!editingCatName.trim()) {
       setCategoryError('Category name cannot be empty');
       return;
     }
-    const res = updateCategory(editingCatId, {
+    const res = await updateCategory(editingCatId, {
       name: editingCatName.trim(),
       icon: editingCatIcon.trim() || '🍽️',
     });
@@ -596,11 +658,11 @@ export default function Admin() {
     }
   };
 
-  const handleDeleteCategoryClick = (catId, catName) => {
+  const handleDeleteCategoryClick = async (catId, catName) => {
     setCategoryError('');
     const confirmed = window.confirm(`Are you sure you want to delete category "${catName}"?`);
     if (!confirmed) return;
-    const res = deleteCategory(catId);
+    const res = await deleteCategory(catId);
     if (res.success) {
       showNotification(`Category "${catName}" deleted successfully`);
     } else {
@@ -611,12 +673,12 @@ export default function Admin() {
   // ==========================================================
   // ADMIN PASSWORD CHANGE HANDLER
   // ==========================================================
-  const handleChangePasswordSubmit = (e) => {
+  const handleChangePasswordSubmit = async (e) => {
     e.preventDefault();
     setPasswordError('');
     setPasswordSuccess('');
 
-    const res = authService.changePassword(
+    const res = await authService.changePassword(
       currentPassword,
       newPassword,
       confirmPassword
@@ -627,13 +689,18 @@ export default function Admin() {
       setCurrentPassword('');
       setNewPassword('');
       setConfirmPassword('');
-      showNotification('Admin password changed successfully!');
+      showNotification('Admin password changed successfully in Supabase Auth!');
     } else {
       setPasswordError(res.error);
     }
   };
 
 
+
+  // If someone visits /admin without being authenticated, redirect them to /admin/login
+  if (!isAuthenticated) {
+    return <Navigate to="/admin/login" replace />;
+  }
 
   // ==========================================================
   // AUTHENTICATED DASHBOARD WITH SIDEBAR
@@ -1369,6 +1436,41 @@ export default function Admin() {
                         />
                         <span>Home Delivery Available</span>
                       </label>
+                    </div>
+                  </div>
+
+                  {/* Supabase Cloud Database & Storage Sync Card */}
+                  <div className="admin-settings-card">
+                    <h3 className="admin-settings-card__title">
+                      <RefreshCw size={18} /> Supabase Cloud Sync
+                    </h3>
+                    <p className="admin-settings-card__desc">
+                      Safely synchronize your customized cafe menu items, categories, gallery photos, and settings into Supabase without duplicates.
+                    </p>
+
+                    <div style={{ marginTop: '12px', display: 'flex', flexDirection: 'column', gap: '10px' }}>
+                      <div style={{ fontSize: '0.9rem', color: supabaseStatus.connected ? '#10b981' : '#f59e0b', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                        {supabaseStatus.connected ? '🟢 Connected to Supabase' : '🟡 Supabase Read Ready (Run supabase_setup.sql in Supabase SQL editor)'}
+                      </div>
+
+                      {migrationStatusMsg && (
+                        <div style={{ padding: '10px 14px', borderRadius: '6px', background: 'var(--color-bg-secondary, #f3f4f6)', fontSize: '0.85rem' }}>
+                          {migrationStatusMsg}
+                        </div>
+                      )}
+
+                      <div>
+                        <button
+                          type="button"
+                          className="admin-btn admin-btn--outline"
+                          onClick={handleRunMigration}
+                          disabled={isMigrating}
+                          style={{ display: 'inline-flex', alignItems: 'center', gap: '8px' }}
+                        >
+                          <RefreshCw size={16} className={isMigrating ? 'spin' : ''} />
+                          {isMigrating ? 'Syncing...' : 'Sync Local Data to Supabase'}
+                        </button>
+                      </div>
                     </div>
                   </div>
 
