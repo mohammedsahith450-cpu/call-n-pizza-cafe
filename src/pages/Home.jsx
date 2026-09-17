@@ -142,13 +142,13 @@ export default function Home() {
 
             {/* Action Buttons Row */}
             <div className="hero__buttons">
-              <Link to="/menu" className="hero-btn hero-btn--order" id="hero-order-btn">
-                <Pizza size={18} />
-                <span>Order Now</span>
+              <Link to="/menu" className="hero-btn hero-btn--order" id="hero-order-btn" title="Order Now" aria-label="Order Now">
+                <Pizza size={22} className="hero-btn__icon" />
+                <span className="hero-btn__text">Order Now</span>
               </Link>
-              <Link to="/menu" className="hero-btn hero-btn--menu" id="hero-menu-btn">
-                <BookOpen size={18} className="hero-btn__menu-icon" />
-                <span>View Menu</span>
+              <Link to="/menu" className="hero-btn hero-btn--menu" id="hero-menu-btn" title="View Menu" aria-label="View Menu">
+                <BookOpen size={22} className="hero-btn__icon hero-btn__menu-icon" />
+                <span className="hero-btn__text">View Menu</span>
               </Link>
               <a
                 href={settings.whatsappUrl}
@@ -156,17 +156,21 @@ export default function Home() {
                 rel="noopener noreferrer"
                 className="hero-btn hero-btn--whatsapp"
                 id="hero-whatsapp-btn"
+                title="WhatsApp Order"
+                aria-label="WhatsApp Order"
               >
-                <WhatsAppFilledIcon size={20} />
-                <span>WhatsApp Order</span>
+                <WhatsAppFilledIcon size={24} className="hero-btn__icon" />
+                <span className="hero-btn__text">WhatsApp Order</span>
               </a>
               <a
                 href={settings.phoneTel}
                 className="hero-btn hero-btn--call"
                 id="hero-call-btn"
+                title={`Call ${settings.phone}`}
+                aria-label={`Call ${settings.phone}`}
               >
-                <PhoneCall size={18} className="hero-btn__call-icon" />
-                <span>Call: {settings.phone}</span>
+                <PhoneCall size={22} className="hero-btn__icon hero-btn__call-icon" />
+                <span className="hero-btn__text">Call: {settings.phone}</span>
               </a>
             </div>
 
