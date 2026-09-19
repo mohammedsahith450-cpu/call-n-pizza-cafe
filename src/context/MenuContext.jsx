@@ -36,44 +36,20 @@ export function MenuProvider({ children }) {
     };
   }, []);
 
-  // Keep state synced across tabs / external events.
-  // BUG 1 FIX: each 'storage' handler now guards on the specific key it owns
-  // so saving items does not accidentally trigger the categories handler (and vice versa),
-  // which was silently re-reading stale localStorage over freshly-fetched Supabase data.
+  // Cross-tab sync: when Admin saves in another browser tab (or the same origin
+  // opens in a new tab), the 'storage' event fires here so the menu re-reads
+  // the latest localStorage values that the other tab just wrote.
   useEffect(() => {
-    const handleItemsUpdate = (e) => {
-      // CustomEvent from same tab – e.detail is the updated list
-      if (e.detail) {
-        setItems(e.detail);
-        return;
+    const handleStorageChange = (e) => {
+      if (e.key === 'call_n_pizza_menu_items') {
+        setItems(menuService.getInitialItems());
+      } else if (e.key === 'call_n_pizza_categories') {
+        setCategories(menuService.getCategories());
       }
-      // Cross-tab storage event – only act when the items key changed
-      if (e.type === 'storage' && e.key && e.key !== 'call_n_pizza_menu_items') return;
-      setItems(menuService.getInitialItems());
     };
 
-    const handleCategoriesUpdate = (e) => {
-      // CustomEvent from same tab – e.detail is the updated list
-      if (e.detail) {
-        setCategories(e.detail);
-        return;
-      }
-      // Cross-tab storage event – only act when the categories key changed
-      if (e.type === 'storage' && e.key && e.key !== 'call_n_pizza_categories') return;
-      setCategories(menuService.getCategories());
-    };
-
-    window.addEventListener('menu-items-updated', handleItemsUpdate);
-    window.addEventListener('menu-categories-updated', handleCategoriesUpdate);
-    window.addEventListener('storage', handleItemsUpdate);
-    window.addEventListener('storage', handleCategoriesUpdate);
-
-    return () => {
-      window.removeEventListener('menu-items-updated', handleItemsUpdate);
-      window.removeEventListener('menu-categories-updated', handleCategoriesUpdate);
-      window.removeEventListener('storage', handleItemsUpdate);
-      window.removeEventListener('storage', handleCategoriesUpdate);
-    };
+    window.addEventListener('storage', handleStorageChange);
+    return () => window.removeEventListener('storage', handleStorageChange);
   }, []);
 
   // BUG 1 FIX: Periodic Supabase re-fetch every 30 s so that mobile customers
@@ -98,15 +74,6 @@ export function MenuProvider({ children }) {
     return () => clearInterval(pollIntervalRef.current);
   }, []);
 
-  // Save items to localStorage whenever items state changes
-  useEffect(() => {
-    menuService.saveItems(items);
-  }, [items]);
-
-  // Save categories to localStorage whenever categories state changes
-  useEffect(() => {
-    menuService.saveCategories(categories);
-  }, [categories]);
 
   // ── Food Item Handlers ────────────────────────────────────────
   const updateItem = useCallback(async (id, updates) => {

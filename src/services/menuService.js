@@ -28,9 +28,6 @@ class MenuService {
   saveItems(items) {
     try {
       localStorage.setItem(STORAGE_KEY, JSON.stringify(items));
-      if (typeof window !== 'undefined') {
-        window.dispatchEvent(new CustomEvent('menu-items-updated', { detail: items }));
-      }
     } catch (e) {
       console.error('Could not save menu items to localStorage:', e);
     }
@@ -39,9 +36,6 @@ class MenuService {
   resetToDefault() {
     try {
       localStorage.removeItem(STORAGE_KEY);
-      if (typeof window !== 'undefined') {
-        window.dispatchEvent(new CustomEvent('menu-items-updated', { detail: defaultMenuItems }));
-      }
     } catch (e) {
       console.error(e);
     }
@@ -51,7 +45,8 @@ class MenuService {
   // ── Asynchronous Supabase Operations for Menu Items ──────────
   async fetchItems() {
     if (!isSupabaseConfigured || !supabase) {
-      return this.getInitialItems();
+      // Supabase not configured — return null so callers keep their current state
+      return null;
     }
 
     try {
@@ -62,10 +57,10 @@ class MenuService {
 
       if (error) {
         console.warn('[Supabase] fetchItems error, using local data:', error.message);
-        return this.getInitialItems();
+        return null; // caller will retain current state
       }
 
-      if (Array.isArray(data) && data.length > 0) {
+      if (Array.isArray(data)) {
         const formatted = data.map((row) => ({
           id: row.id,
           name: row.name,
@@ -77,6 +72,8 @@ class MenuService {
           available: row.available !== false,
           featured: Boolean(row.featured),
         }));
+        // Persist fresh Supabase data to localStorage so the next page load
+        // (including on mobile devices) starts with up-to-date cached data.
         this.saveItems(formatted);
         return formatted;
       }
@@ -84,7 +81,7 @@ class MenuService {
       console.warn('[Supabase] Exception fetching menu items:', err);
     }
 
-    return this.getInitialItems();
+    return null; // Supabase unreachable — caller retains current state
   }
 
   async saveItemToSupabase(item) {
@@ -162,11 +159,6 @@ class MenuService {
   saveCategories(categoriesList) {
     try {
       localStorage.setItem(CATEGORIES_STORAGE_KEY, JSON.stringify(categoriesList));
-      if (typeof window !== 'undefined') {
-        window.dispatchEvent(
-          new CustomEvent('menu-categories-updated', { detail: categoriesList })
-        );
-      }
     } catch (e) {
       console.error('Could not save categories to localStorage:', e);
     }
@@ -175,11 +167,6 @@ class MenuService {
   resetCategories() {
     try {
       localStorage.removeItem(CATEGORIES_STORAGE_KEY);
-      if (typeof window !== 'undefined') {
-        window.dispatchEvent(
-          new CustomEvent('menu-categories-updated', { detail: defaultCategories })
-        );
-      }
     } catch (e) {
       console.error(e);
     }
@@ -188,7 +175,8 @@ class MenuService {
 
   async fetchCategories() {
     if (!isSupabaseConfigured || !supabase) {
-      return this.getCategories();
+      // Supabase not configured — return null so callers keep their current state
+      return null;
     }
 
     try {
@@ -199,20 +187,23 @@ class MenuService {
 
       if (error) {
         console.warn('[Supabase] fetchCategories error, using local data:', error.message);
-        return this.getCategories();
+        return null; // caller will retain current state
       }
 
-      if (Array.isArray(data) && data.length > 0) {
+      if (Array.isArray(data)) {
         let formatted = data.map((row) => ({
           id: row.id,
           name: row.name,
           icon: row.icon || '🍽️',
         }));
 
+        // Always ensure the synthetic 'All' category is present as the first entry
         if (!formatted.some((c) => c.id === 'all')) {
           formatted = [{ id: 'all', name: 'All', icon: '🍽️' }, ...formatted];
         }
 
+        // Persist fresh Supabase data to localStorage so the next page load
+        // (including on mobile devices) starts with up-to-date cached data.
         this.saveCategories(formatted);
         return formatted;
       }
@@ -220,7 +211,7 @@ class MenuService {
       console.warn('[Supabase] Exception fetching categories:', err);
     }
 
-    return this.getCategories();
+    return null; // Supabase unreachable — caller retains current state
   }
 
   async saveCategoryToSupabase(category) {
