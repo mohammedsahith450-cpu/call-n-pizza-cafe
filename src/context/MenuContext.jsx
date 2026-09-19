@@ -1,5 +1,6 @@
 import { createContext, useContext, useState, useEffect, useCallback, useRef } from 'react';
 import { menuService } from '../services/menuService';
+import { supabase, isSupabaseConfigured } from '../lib/supabase';
 
 const MenuContext = createContext();
 
@@ -36,6 +37,49 @@ export function MenuProvider({ children }) {
     };
   }, []);
 
+  // Realtime Supabase synchronization:
+  // Whenever categories or menu_items are modified in Supabase, instantly reflect
+  // on all customer devices (mobile & desktop) without waiting for polling.
+  useEffect(() => {
+    if (!isSupabaseConfigured || !supabase) return;
+
+    const channel = supabase
+      .channel('menu-realtime-sync')
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'categories' },
+        async () => {
+          try {
+            const freshCats = await menuService.fetchCategories();
+            if (freshCats && freshCats.length > 0) {
+              setCategories(freshCats);
+            }
+          } catch (e) {
+            console.warn('[Realtime] Failed to sync categories:', e);
+          }
+        }
+      )
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'menu_items' },
+        async () => {
+          try {
+            const freshItems = await menuService.fetchItems();
+            if (freshItems && freshItems.length > 0) {
+              setItems(freshItems);
+            }
+          } catch (e) {
+            console.warn('[Realtime] Failed to sync menu items:', e);
+          }
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, []);
+
   // Cross-tab sync: when Admin saves in another browser tab (or the same origin
   // opens in a new tab), the 'storage' event fires here so the menu re-reads
   // the latest localStorage values that the other tab just wrote.
@@ -52,9 +96,8 @@ export function MenuProvider({ children }) {
     return () => window.removeEventListener('storage', handleStorageChange);
   }, []);
 
-  // BUG 1 FIX: Periodic Supabase re-fetch every 30 s so that mobile customers
-  // automatically see Admin category/item changes without a hard page reload.
-  // Supabase is the source of truth; localStorage is only the fast-boot cache.
+  // Periodic Supabase re-fetch every 30 s as a fallback in case Realtime connection
+  // drops or is not enabled in the database.
   const pollIntervalRef = useRef(null);
   useEffect(() => {
     const poll = async () => {
@@ -77,65 +120,77 @@ export function MenuProvider({ children }) {
 
   // ── Food Item Handlers ────────────────────────────────────────
   const updateItem = useCallback(async (id, updates) => {
-    let updatedItem = null;
+    const existing = items.find((item) => item.id === id);
+    if (!existing) return { success: false, error: 'Item not found' };
+
+    const updatedItem = { ...existing, ...updates };
+
+    const saveRes = await menuService.saveItemToSupabase(updatedItem);
+    if (!saveRes?.success) {
+      return { success: false, error: saveRes?.error || 'Failed to update item in Supabase database.' };
+    }
+
     setItems((prev) => {
-      const updated = prev.map((item) => {
-        if (item.id === id) {
-          updatedItem = { ...item, ...updates };
-          return updatedItem;
-        }
-        return item;
-      });
+      const updated = prev.map((item) => (item.id === id ? updatedItem : item));
       menuService.saveItems(updated);
       return updated;
     });
 
-    if (updatedItem) {
-      await menuService.saveItemToSupabase(updatedItem);
-    }
-  }, []);
+    return { success: true, item: updatedItem };
+  }, [items]);
 
   const addItem = useCallback(async (newItem) => {
     const id = newItem.id || `item-${Date.now()}`;
     const fullItem = { ...newItem, id };
+
+    const saveRes = await menuService.saveItemToSupabase(fullItem);
+    if (!saveRes?.success) {
+      return { success: false, error: saveRes?.error || 'Failed to save food item to Supabase database.' };
+    }
+
     setItems((prev) => {
       const updated = [fullItem, ...prev];
       menuService.saveItems(updated);
       return updated;
     });
 
-    await menuService.saveItemToSupabase(fullItem);
-    return fullItem;
+    return { success: true, item: fullItem };
   }, []);
 
   const deleteItem = useCallback(async (id) => {
+    const delRes = await menuService.deleteItemFromSupabase(id);
+    if (!delRes?.success) {
+      return { success: false, error: delRes?.error || 'Failed to delete item from Supabase database.' };
+    }
+
     setItems((prev) => {
       const updated = prev.filter((item) => item.id !== id);
       menuService.saveItems(updated);
       return updated;
     });
 
-    await menuService.deleteItemFromSupabase(id);
+    return { success: true };
   }, []);
 
   const toggleAvailability = useCallback(async (id) => {
-    let changedItem = null;
+    const existing = items.find((item) => item.id === id);
+    if (!existing) return;
+
+    const updatedItem = { ...existing, available: !existing.available };
+    const saveRes = await menuService.saveItemToSupabase(updatedItem);
+    if (!saveRes?.success) {
+      console.error('[MenuContext] Could not toggle availability in Supabase:', saveRes?.error);
+      return { success: false, error: saveRes?.error };
+    }
+
     setItems((prev) => {
-      const updated = prev.map((item) => {
-        if (item.id === id) {
-          changedItem = { ...item, available: !item.available };
-          return changedItem;
-        }
-        return item;
-      });
+      const updated = prev.map((item) => (item.id === id ? updatedItem : item));
       menuService.saveItems(updated);
       return updated;
     });
 
-    if (changedItem) {
-      await menuService.saveItemToSupabase(changedItem);
-    }
-  }, []);
+    return { success: true, item: updatedItem };
+  }, [items]);
 
   const resetMenu = useCallback(() => {
     const defaultItems = menuService.resetToDefault();
@@ -171,13 +226,18 @@ export function MenuProvider({ children }) {
       icon: categoryData.icon || '🍽️',
     };
 
+    // Save to Supabase first as source of truth
+    const saveRes = await menuService.saveCategoryToSupabase(newCat);
+    if (!saveRes?.success) {
+      return { success: false, error: saveRes?.error || 'Failed to save category to Supabase database.' };
+    }
+
     setCategories((prev) => {
       const updated = [...prev, newCat];
       menuService.saveCategories(updated);
       return updated;
     });
 
-    await menuService.saveCategoryToSupabase(newCat);
     return { success: true, category: newCat };
   }, [categories]);
 
@@ -191,29 +251,30 @@ export function MenuProvider({ children }) {
       return { success: false, error: 'Category name cannot be empty.' };
     }
 
-    let updatedCat = null;
+    const existingCat = categories.find((c) => c.id === id);
+    if (!existingCat) {
+      return { success: false, error: 'Category not found.' };
+    }
+
+    const updatedCat = {
+      ...existingCat,
+      name,
+      icon: updates.icon || existingCat.icon || '🍽️',
+    };
+
+    const saveRes = await menuService.saveCategoryToSupabase(updatedCat);
+    if (!saveRes?.success) {
+      return { success: false, error: saveRes?.error || 'Failed to update category in Supabase database.' };
+    }
+
     setCategories((prev) => {
-      const updated = prev.map((cat) => {
-        if (cat.id === id) {
-          updatedCat = {
-            ...cat,
-            name,
-            icon: updates.icon || cat.icon || '🍽️',
-          };
-          return updatedCat;
-        }
-        return cat;
-      });
+      const updated = prev.map((cat) => (cat.id === id ? updatedCat : cat));
       menuService.saveCategories(updated);
       return updated;
     });
 
-    if (updatedCat) {
-      await menuService.saveCategoryToSupabase(updatedCat);
-    }
-
-    return { success: true };
-  }, []);
+    return { success: true, category: updatedCat };
+  }, [categories]);
 
   const deleteCategory = useCallback(async (id) => {
     if (id === 'all') {
@@ -229,13 +290,17 @@ export function MenuProvider({ children }) {
       };
     }
 
+    const delRes = await menuService.deleteCategoryFromSupabase(id);
+    if (!delRes?.success) {
+      return { success: false, error: delRes?.error || 'Failed to delete category from Supabase database.' };
+    }
+
     setCategories((prev) => {
       const updated = prev.filter((c) => c.id !== id);
       menuService.saveCategories(updated);
       return updated;
     });
 
-    await menuService.deleteCategoryFromSupabase(id);
     return { success: true };
   }, [items]);
 

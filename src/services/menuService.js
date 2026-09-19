@@ -52,8 +52,7 @@ class MenuService {
     try {
       const { data, error } = await supabase
         .from('menu_items')
-        .select('*')
-        .order('created_at', { ascending: true });
+        .select('*');
 
       if (error) {
         console.warn('[Supabase] fetchItems error, using local data:', error.message);
@@ -61,7 +60,17 @@ class MenuService {
       }
 
       if (Array.isArray(data)) {
-        const formatted = data.map((row) => ({
+        // Safely sort in memory if created_at is present
+        const sorted = [...data];
+        if (sorted.some((r) => r.created_at)) {
+          sorted.sort((a, b) => {
+            if (!a.created_at) return 1;
+            if (!b.created_at) return -1;
+            return new Date(a.created_at) - new Date(b.created_at);
+          });
+        }
+
+        const formatted = sorted.map((row) => ({
           id: row.id,
           name: row.name,
           description: row.description || '',
@@ -85,13 +94,13 @@ class MenuService {
   }
 
   async saveItemToSupabase(item) {
-    if (!isSupabaseConfigured || !supabase) return { success: false };
+    if (!isSupabaseConfigured || !supabase) return { success: false, error: 'Supabase is not configured' };
 
     // Security check: only authenticated admin can mutate database
     try {
       const { data: sessionData } = await supabase.auth.getSession();
       if (!sessionData?.session) {
-        return { success: false, error: 'Authentication required for database writes.' };
+        return { success: false, error: 'Authentication required for database writes. Please ensure you are logged in.' };
       }
 
       const payload = {
@@ -107,7 +116,7 @@ class MenuService {
         updated_at: new Date().toISOString(),
       };
 
-      const { error } = await supabase.from('menu_items').upsert(payload);
+      const { error } = await supabase.from('menu_items').upsert(payload, { onConflict: 'id' });
       if (error) {
         console.warn('[Supabase] saveItemToSupabase error:', error.message);
         return { success: false, error: error.message };
@@ -120,12 +129,12 @@ class MenuService {
   }
 
   async deleteItemFromSupabase(id) {
-    if (!isSupabaseConfigured || !supabase) return { success: false };
+    if (!isSupabaseConfigured || !supabase) return { success: false, error: 'Supabase is not configured' };
 
     try {
       const { data: sessionData } = await supabase.auth.getSession();
       if (!sessionData?.session) {
-        return { success: false, error: 'Authentication required for database writes.' };
+        return { success: false, error: 'Authentication required for database writes. Please ensure you are logged in.' };
       }
 
       const { error } = await supabase.from('menu_items').delete().eq('id', id);
@@ -182,8 +191,7 @@ class MenuService {
     try {
       const { data, error } = await supabase
         .from('categories')
-        .select('*')
-        .order('created_at', { ascending: true });
+        .select('*');
 
       if (error) {
         console.warn('[Supabase] fetchCategories error, using local data:', error.message);
@@ -191,7 +199,17 @@ class MenuService {
       }
 
       if (Array.isArray(data)) {
-        let formatted = data.map((row) => ({
+        // Safely sort in memory if created_at is present
+        const sorted = [...data];
+        if (sorted.some((r) => r.created_at)) {
+          sorted.sort((a, b) => {
+            if (!a.created_at) return 1;
+            if (!b.created_at) return -1;
+            return new Date(a.created_at) - new Date(b.created_at);
+          });
+        }
+
+        let formatted = sorted.map((row) => ({
           id: row.id,
           name: row.name,
           icon: row.icon || '🍽️',
@@ -215,12 +233,12 @@ class MenuService {
   }
 
   async saveCategoryToSupabase(category) {
-    if (!isSupabaseConfigured || !supabase) return { success: false };
+    if (!isSupabaseConfigured || !supabase) return { success: false, error: 'Supabase is not configured' };
 
     try {
       const { data: sessionData } = await supabase.auth.getSession();
       if (!sessionData?.session) {
-        return { success: false, error: 'Authentication required for database writes.' };
+        return { success: false, error: 'Authentication required for database writes. Please ensure you are logged in.' };
       }
 
       const payload = {
@@ -229,7 +247,7 @@ class MenuService {
         icon: category.icon || '🍽️',
       };
 
-      const { error } = await supabase.from('categories').upsert(payload);
+      const { error } = await supabase.from('categories').upsert(payload, { onConflict: 'id' });
       if (error) {
         console.warn('[Supabase] saveCategoryToSupabase error:', error.message);
         return { success: false, error: error.message };
@@ -242,12 +260,12 @@ class MenuService {
   }
 
   async deleteCategoryFromSupabase(id) {
-    if (!isSupabaseConfigured || !supabase) return { success: false };
+    if (!isSupabaseConfigured || !supabase) return { success: false, error: 'Supabase is not configured' };
 
     try {
       const { data: sessionData } = await supabase.auth.getSession();
       if (!sessionData?.session) {
-        return { success: false, error: 'Authentication required for database writes.' };
+        return { success: false, error: 'Authentication required for database writes. Please ensure you are logged in.' };
       }
 
       const { error } = await supabase.from('categories').delete().eq('id', id);

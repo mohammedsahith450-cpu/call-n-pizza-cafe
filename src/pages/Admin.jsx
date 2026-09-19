@@ -349,11 +349,19 @@ export default function Admin() {
     };
 
     if (editingItem) {
-      await updateItem(editingItem.id, payload);
+      const res = await updateItem(editingItem.id, payload);
+      if (res && res.success === false) {
+        alert(`Failed to save item: ${res.error}`);
+        return;
+      }
       showNotification(`"${payload.name}" updated successfully!`);
     } else {
       const newId = `${formCategory}-${Date.now()}`;
-      await addItem({ id: newId, ...payload });
+      const res = await addItem({ id: newId, ...payload });
+      if (res && res.success === false) {
+        alert(`Failed to create item: ${res.error}`);
+        return;
+      }
       showNotification(`"${payload.name}" created successfully!`);
     }
 
@@ -631,6 +639,9 @@ export default function Admin() {
     if (res.success) {
       setNewCatName('');
       setNewCatIcon('🍽️');
+      if (res.category?.id) {
+        setFormCategory(res.category.id);
+      }
       showNotification(`Category "${res.category.name}" added successfully!`);
     } else {
       setCategoryError(res.error);
