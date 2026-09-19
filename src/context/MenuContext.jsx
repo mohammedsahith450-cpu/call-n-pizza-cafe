@@ -1,4 +1,4 @@
-import { createContext, useContext, useState, useEffect, useCallback } from 'react';
+import { createContext, useContext, useState, useEffect, useCallback, useRef } from 'react';
 import { menuService } from '../services/menuService';
 
 const MenuContext = createContext();
@@ -36,22 +36,31 @@ export function MenuProvider({ children }) {
     };
   }, []);
 
-  // Keep state synced across tabs / external events
+  // Keep state synced across tabs / external events.
+  // BUG 1 FIX: each 'storage' handler now guards on the specific key it owns
+  // so saving items does not accidentally trigger the categories handler (and vice versa),
+  // which was silently re-reading stale localStorage over freshly-fetched Supabase data.
   useEffect(() => {
     const handleItemsUpdate = (e) => {
+      // CustomEvent from same tab – e.detail is the updated list
       if (e.detail) {
         setItems(e.detail);
-      } else {
-        setItems(menuService.getInitialItems());
+        return;
       }
+      // Cross-tab storage event – only act when the items key changed
+      if (e.type === 'storage' && e.key && e.key !== 'call_n_pizza_menu_items') return;
+      setItems(menuService.getInitialItems());
     };
 
     const handleCategoriesUpdate = (e) => {
+      // CustomEvent from same tab – e.detail is the updated list
       if (e.detail) {
         setCategories(e.detail);
-      } else {
-        setCategories(menuService.getCategories());
+        return;
       }
+      // Cross-tab storage event – only act when the categories key changed
+      if (e.type === 'storage' && e.key && e.key !== 'call_n_pizza_categories') return;
+      setCategories(menuService.getCategories());
     };
 
     window.addEventListener('menu-items-updated', handleItemsUpdate);
@@ -65,6 +74,28 @@ export function MenuProvider({ children }) {
       window.removeEventListener('storage', handleItemsUpdate);
       window.removeEventListener('storage', handleCategoriesUpdate);
     };
+  }, []);
+
+  // BUG 1 FIX: Periodic Supabase re-fetch every 30 s so that mobile customers
+  // automatically see Admin category/item changes without a hard page reload.
+  // Supabase is the source of truth; localStorage is only the fast-boot cache.
+  const pollIntervalRef = useRef(null);
+  useEffect(() => {
+    const poll = async () => {
+      try {
+        const [remoteCats, remoteItems] = await Promise.all([
+          menuService.fetchCategories(),
+          menuService.fetchItems(),
+        ]);
+        if (remoteCats && remoteCats.length > 0) setCategories(remoteCats);
+        if (remoteItems && remoteItems.length > 0) setItems(remoteItems);
+      } catch {
+        // Silent — network may be unavailable; keep showing cached data
+      }
+    };
+
+    pollIntervalRef.current = setInterval(poll, 30000);
+    return () => clearInterval(pollIntervalRef.current);
   }, []);
 
   // Save items to localStorage whenever items state changes
