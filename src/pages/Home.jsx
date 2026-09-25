@@ -242,7 +242,7 @@ export default function Home() {
       <section className="home__shawarma-section" id="shawarma-specialty">
         <div className="home__shawarma-backdrop" aria-hidden="true">
           <img
-            src="/images/shawarma-hero-new.png"
+            src="/images/shawarma-hero-clean.jpg"
             alt="Call N Pizza Cafe Shawarma Specialty"
             className="home__shawarma-img"
           />

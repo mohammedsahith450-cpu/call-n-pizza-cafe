@@ -556,7 +556,7 @@
     width: 100%;
     height: clamp(260px, 72vw, 340px);
     object-fit: cover;
-    object-position: 65% center;
+    object-position: center center;
     display: block;
   }
 
@@ -667,7 +667,7 @@
 @media (max-width: 374px) {
   .home__shawarma-img {
     height: clamp(230px, 68vw, 270px);
-    object-position: 65% center;
+    object-position: center center;
   }
 
   .home__shawarma-container {
