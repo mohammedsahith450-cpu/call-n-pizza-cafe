@@ -104,3 +104,16 @@
     display: none;
   }
 }
+
+/* Adjust floating buttons when bottom cart is visible */
+body.has-bottom-cart .floating-actions {
+  bottom: calc(84px + env(safe-area-inset-bottom, 0px));
+  transition: bottom 0.25s ease;
+}
+
+@media (max-width: 600px) {
+  body.has-bottom-cart .floating-actions {
+    bottom: calc(76px + env(safe-area-inset-bottom, 0px));
+  }
+}
+

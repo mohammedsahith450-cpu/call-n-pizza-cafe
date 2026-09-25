@@ -44,8 +44,6 @@ export function CartProvider({ children }) {
         },
       ];
     });
-
-    setIsCartOpen(true);
   }, []);
 
   /**

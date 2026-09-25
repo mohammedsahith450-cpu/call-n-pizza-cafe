@@ -28,6 +28,7 @@ export const categories = [
   { id: 'all', name: 'All', icon: '🍽️' },
   { id: 'pizza', name: 'Pizza', icon: '🍕' },
   { id: 'burger', name: 'Burger', icon: '🍔' },
+  { id: 'shawarma', name: 'Shawarma', icon: '🌯' },
   { id: 'fried-chicken', name: 'Fried Chicken', icon: '🍗' },
   { id: 'chicken-specials', name: 'Chicken Specials', icon: '🍖' },
   { id: 'sandwich-wrap', name: 'Sandwich & Wrap', icon: '🌯' },

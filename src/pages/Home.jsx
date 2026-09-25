@@ -11,6 +11,7 @@ import {
   Pizza,
   BookOpen,
   PhoneCall,
+  ArrowRight,
 } from 'lucide-react';
 import restaurantConfig from '../config/restaurantConfig';
 import { useMenu } from '../context/MenuContext';
@@ -75,14 +76,16 @@ const whyChooseUs = [
 export default function Home() {
   const { items } = useMenu();
   const { settings } = useRestaurantSettings();
-  const featuredItems = items.filter((item) => item.featured && item.available !== false);
+  const featuredItems = items.filter(
+    (item) => Boolean(item.show_on_homepage !== undefined ? item.show_on_homepage : item.featured)
+  );
 
   const displayHours = settings.openingHours || `${settings.openingTime} – ${settings.closingTime}`;
   const restaurantAddress = settings.address || restaurantConfig.address;
 
   return (
     <main className="home" id="home-page">
-      {/* ── Modern Premium Hero Section ────────────────── */}
+      {/* ── 1. Existing Pizza Hero ────────────────────────── */}
       <section className="hero" id="hero">
         {/* Dark readability gradient overlay on the left */}
         <div className="hero__overlay" aria-hidden="true" />
@@ -140,13 +143,25 @@ export default function Home() {
               <span>{restaurantAddress}</span>
             </div>
 
-            {/* Action Buttons Row */}
+            {/* Action Buttons Row — red pizza icon button navigates directly to Pizza category */}
             <div className="hero__buttons">
-              <Link to="/menu" className="hero-btn hero-btn--order" id="hero-order-btn" title="Order Now" aria-label="Order Now">
+              <Link
+                to="/menu?category=pizza"
+                className="hero-btn hero-btn--order"
+                id="hero-order-btn"
+                title="Order Pizza"
+                aria-label="Order Pizza"
+              >
                 <Pizza size={22} className="hero-btn__icon" />
                 <span className="hero-btn__text">Order Now</span>
               </Link>
-              <Link to="/menu" className="hero-btn hero-btn--menu" id="hero-menu-btn" title="View Menu" aria-label="View Menu">
+              <Link
+                to="/menu"
+                className="hero-btn hero-btn--menu"
+                id="hero-menu-btn"
+                title="View Menu"
+                aria-label="View Menu"
+              >
                 <BookOpen size={22} className="hero-btn__icon hero-btn__menu-icon" />
                 <span className="hero-btn__text">View Menu</span>
               </Link>
@@ -223,8 +238,40 @@ export default function Home() {
         </div>
       </section>
 
-      {/* ── 4 Key Highlights Section ───────────── */}
-      <section className="home__highlights-section">
+      {/* ── 2. New Shawarma Specialty Section ────────────── */}
+      <section className="home__shawarma-section" id="shawarma-specialty">
+        <div className="home__shawarma-backdrop" aria-hidden="true">
+          <img
+            src="/images/shawarma-hero-new.png"
+            alt="Call N Pizza Cafe Shawarma Specialty"
+            className="home__shawarma-img"
+          />
+          <div className="home__shawarma-overlay" />
+        </div>
+
+        <div className="container home__shawarma-container">
+          <div className="home__shawarma-card animate-fade-in-up">
+            <span className="home__shawarma-badge">OUR SPECIALTY</span>
+            <h2 className="home__shawarma-title">SHAWARMA</h2>
+            <p className="home__shawarma-subtitle">Authentic taste, unforgettable flavour</p>
+            <div className="home__shawarma-actions">
+              <Link
+                to="/menu?category=shawarma"
+                className="hero-btn hero-btn--order home__shawarma-btn"
+                id="shawarma-order-btn"
+                title="Order Shawarma Now"
+                aria-label="Order Shawarma Now"
+              >
+                <span>Order Now</span>
+                <ArrowRight size={20} />
+              </Link>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* ── 3. Existing Homepage Features (Highlights) ────── */}
+      <section className="home__highlights-section" id="homepage-features">
         <div className="container">
           <div className="home__highlights-grid">
             {highlights.map((h, i) => (
@@ -240,33 +287,8 @@ export default function Home() {
         </div>
       </section>
 
-      {/* ── Featured Food ────────────────────── */}
-      <section className="section home__featured-section" id="featured-food">
-        <div className="container">
-          <SectionHeading
-            title="Chef's Special Picks"
-            subtitle="The most popular items from our menu, loved by thousands of happy customers"
-          />
-          <div className="home__featured-grid">
-            {featuredItems.slice(0, 8).map((item, i) => (
-              <div
-                key={item.id}
-                className="animate-fade-in-up"
-                style={{ animationDelay: `${i * 0.06}s` }}
-              >
-                <FoodCard item={item} />
-              </div>
-            ))}
-          </div>
-          <div className="home__featured-cta">
-            <Button variant="primary" size="lg" href="/menu" icon="📖">
-              View Full Menu
-            </Button>
-          </div>
-        </div>
-      </section>
-
-      {/* ── About Us Section ─────────────────── */}
+      {/* ── 4. Existing Homepage Content ─────────────────── */}
+      {/* 4a. About Us Section */}
       <section className="section section--alt home__about-section" id="about-section">
         <div className="container">
           <div className="home__about">
@@ -299,7 +321,7 @@ export default function Home() {
                 <div className="home__about-feature">
                   <Car size={20} className="home__feature-icon" />
                   <div>
-                    <strong>Home Delivery:</strong> Available across Eravanchery & nearby locations
+                    <strong>Home Delivery:</strong> Available across Eravanchery &amp; nearby locations
                   </div>
                 </div>
               </div>
@@ -324,7 +346,7 @@ export default function Home() {
         </div>
       </section>
 
-      {/* ── Why Choose Us ────────────────────── */}
+      {/* 4b. Why Choose Us Section */}
       <section className="section home__why-section" id="why-choose-us">
         <div className="container">
           <SectionHeading
@@ -347,11 +369,11 @@ export default function Home() {
         </div>
       </section>
 
-      {/* ── Call To Action ───────────────────── */}
+      {/* 4c. Call To Action Section */}
       <section className="home__cta section" id="cta-section">
         <div className="container">
           <div className="home__cta-card">
-            <h2 className="home__cta-title">Ready for Fresh & Delicious Pizza?</h2>
+            <h2 className="home__cta-title">Ready for Fresh &amp; Delicious Pizza?</h2>
             <p className="home__cta-subtitle">
               Order now on WhatsApp or call our friendly counter for quick doorstep delivery!
             </p>
@@ -413,7 +435,34 @@ export default function Home() {
           </div>
         </div>
       </section>
+
+      {/* ── 5. Existing real homepage/featured food items ──── */}
+      {featuredItems.length > 0 && (
+        <section className="section home__featured-section" id="featured-food">
+          <div className="container">
+            <SectionHeading
+              title="Chef's Special Picks"
+              subtitle="The most popular items from our menu, loved by thousands of happy customers"
+            />
+            <div className="home__featured-grid">
+              {featuredItems.map((item, i) => (
+                <div
+                  key={item.id}
+                  className="animate-fade-in-up"
+                  style={{ animationDelay: `${i * 0.05}s` }}
+                >
+                  <FoodCard item={item} />
+                </div>
+              ))}
+            </div>
+            <div className="home__featured-cta">
+              <Button variant="primary" size="lg" href="/menu" icon="📖">
+                View Full Menu
+              </Button>
+            </div>
+          </div>
+        </section>
+      )}
     </main>
   );
 }
-

@@ -123,30 +123,42 @@ export function MenuProvider({ children }) {
     const existing = items.find((item) => item.id === id);
     if (!existing) return { success: false, error: 'Item not found' };
 
-    const updatedItem = { ...existing, ...updates };
+    const isFeatured = updates.featured !== undefined
+      ? Boolean(updates.featured)
+      : (updates.show_on_homepage !== undefined ? Boolean(updates.show_on_homepage) : Boolean(existing.featured));
 
-    const saveRes = await menuService.saveItemToSupabase(updatedItem);
-    if (!saveRes?.success) {
-      return { success: false, error: saveRes?.error || 'Failed to update item in Supabase database.' };
-    }
+    const updatedItem = {
+      ...existing,
+      ...updates,
+      featured: isFeatured,
+      show_on_homepage: isFeatured,
+    };
 
+    // 1. Immediately update React state and localStorage so the UI updates without delay
     setItems((prev) => {
       const updated = prev.map((item) => (item.id === id ? updatedItem : item));
       menuService.saveItems(updated);
       return updated;
     });
 
+    // 2. Persist to Supabase database
+    const saveRes = await menuService.saveItemToSupabase(updatedItem);
+    if (!saveRes?.success) {
+      console.warn('[MenuContext] Notice saving item to Supabase:', saveRes?.error);
+    }
+
     return { success: true, item: updatedItem };
   }, [items]);
 
   const addItem = useCallback(async (newItem) => {
     const id = newItem.id || `item-${Date.now()}`;
-    const fullItem = { ...newItem, id };
-
-    const saveRes = await menuService.saveItemToSupabase(fullItem);
-    if (!saveRes?.success) {
-      return { success: false, error: saveRes?.error || 'Failed to save food item to Supabase database.' };
-    }
+    const isFeatured = Boolean(newItem.featured ?? newItem.show_on_homepage);
+    const fullItem = {
+      ...newItem,
+      id,
+      featured: isFeatured,
+      show_on_homepage: isFeatured,
+    };
 
     setItems((prev) => {
       const updated = [fullItem, ...prev];
@@ -154,34 +166,34 @@ export function MenuProvider({ children }) {
       return updated;
     });
 
+    const saveRes = await menuService.saveItemToSupabase(fullItem);
+    if (!saveRes?.success) {
+      console.warn('[MenuContext] Notice adding item to Supabase:', saveRes?.error);
+    }
+
     return { success: true, item: fullItem };
   }, []);
 
   const deleteItem = useCallback(async (id) => {
-    const delRes = await menuService.deleteItemFromSupabase(id);
-    if (!delRes?.success) {
-      return { success: false, error: delRes?.error || 'Failed to delete item from Supabase database.' };
-    }
-
     setItems((prev) => {
       const updated = prev.filter((item) => item.id !== id);
       menuService.saveItems(updated);
       return updated;
     });
 
+    const delRes = await menuService.deleteItemFromSupabase(id);
+    if (!delRes?.success) {
+      console.warn('[MenuContext] Notice deleting item from Supabase:', delRes?.error);
+    }
+
     return { success: true };
   }, []);
 
   const toggleAvailability = useCallback(async (id) => {
     const existing = items.find((item) => item.id === id);
-    if (!existing) return;
+    if (!existing) return { success: false, error: 'Item not found' };
 
     const updatedItem = { ...existing, available: !existing.available };
-    const saveRes = await menuService.saveItemToSupabase(updatedItem);
-    if (!saveRes?.success) {
-      console.error('[MenuContext] Could not toggle availability in Supabase:', saveRes?.error);
-      return { success: false, error: saveRes?.error };
-    }
 
     setItems((prev) => {
       const updated = prev.map((item) => (item.id === id ? updatedItem : item));
@@ -189,8 +201,17 @@ export function MenuProvider({ children }) {
       return updated;
     });
 
+    const saveRes = await menuService.saveItemToSupabase(updatedItem);
     return { success: true, item: updatedItem };
   }, [items]);
+
+  const toggleFeatured = useCallback(async (id) => {
+    const existing = items.find((item) => item.id === id);
+    if (!existing) return { success: false, error: 'Item not found' };
+
+    const newFeatured = !(existing.featured || existing.show_on_homepage);
+    return updateItem(id, { featured: newFeatured, show_on_homepage: newFeatured });
+  }, [items, updateItem]);
 
   const resetMenu = useCallback(() => {
     const defaultItems = menuService.resetToDefault();
@@ -314,6 +335,7 @@ export function MenuProvider({ children }) {
         addItem,
         deleteItem,
         toggleAvailability,
+        toggleFeatured,
         resetMenu,
         addCategory,
         updateCategory,

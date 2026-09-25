@@ -1,4 +1,5 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect, useRef } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import { useMenu } from '../context/MenuContext';
 import SectionHeading from '../components/SectionHeading';
 import CategoryFilter from '../components/CategoryFilter';
@@ -6,8 +7,35 @@ import FoodCard from '../components/FoodCard';
 import './Menu.css';
 
 export default function Menu() {
-  const [activeCategory, setActiveCategory] = useState('all');
+  const [searchParams, setSearchParams] = useSearchParams();
+  const urlCategory = searchParams.get('category');
+  const [activeCategory, setActiveCategory] = useState(urlCategory || 'all');
   const { items, categories } = useMenu();
+  const contentSectionRef = useRef(null);
+
+  // Sync state if URL query param changes
+  useEffect(() => {
+    if (urlCategory) {
+      setActiveCategory(urlCategory);
+      // Smoothly scroll down to menu filter if arriving via deep-link
+      if (contentSectionRef.current) {
+        setTimeout(() => {
+          contentSectionRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        }, 100);
+      }
+    } else {
+      setActiveCategory('all');
+    }
+  }, [urlCategory]);
+
+  const handleSelectCategory = (catId) => {
+    setActiveCategory(catId);
+    if (catId === 'all') {
+      setSearchParams({});
+    } else {
+      setSearchParams({ category: catId });
+    }
+  };
 
   const filteredItems = useMemo(() => {
     return items.filter((item) => {
@@ -20,6 +48,8 @@ export default function Menu() {
     });
   }, [items, activeCategory]);
 
+  const activeCategoryMeta = categories.find((c) => c.id === activeCategory);
+
   return (
     <main className="menu-page" id="menu-page">
       <section className="menu-page__hero">
@@ -31,18 +61,20 @@ export default function Menu() {
         </div>
       </section>
 
-      <section className="section menu-page__content">
+      <section className="section menu-page__content" ref={contentSectionRef} id="menu-content">
         <div className="container">
           <CategoryFilter
             categories={categories}
             activeCategory={activeCategory}
-            onSelect={setActiveCategory}
+            onSelect={handleSelectCategory}
           />
 
           {filteredItems.length === 0 ? (
-            <div className="menu-page__empty">
-              <span className="menu-page__empty-icon">🍽️</span>
-              <p>No items in this category yet.</p>
+            <div className="menu-page__empty" id="menu-empty-state">
+              <span className="menu-page__empty-icon">
+                {activeCategoryMeta?.icon || '🍽️'}
+              </span>
+              <p>No items in {activeCategoryMeta?.name || 'this category'} yet.</p>
             </div>
           ) : (
             <div className="menu-page__grid">

@@ -23,6 +23,8 @@ import {
   ShieldCheck,
   AlertCircle,
   ExternalLink,
+  Sparkles,
+  X,
 } from 'lucide-react';
 import { useMenu } from '../context/MenuContext';
 import { useRestaurantSettings } from '../context/RestaurantSettingsContext';
@@ -36,6 +38,7 @@ import {
 } from '../services/galleryService';
 import { uploadImageToStorage } from '../services/storageService';
 import { checkSupabaseConnection, migrateAllToSupabase } from '../services/migrationService';
+import { menuService } from '../services/menuService';
 import './Admin.css';
 
 export default function Admin() {
@@ -47,6 +50,7 @@ export default function Admin() {
     addItem,
     deleteItem,
     toggleAvailability,
+    toggleFeatured,
     resetMenu,
     addCategory,
     updateCategory,
@@ -178,6 +182,9 @@ export default function Admin() {
 
   useEffect(() => {
     checkSupabaseConnection().then(setSupabaseStatus);
+    if (authService.isAuthenticated()) {
+      menuService.saveCategoryToSupabase({ id: 'shawarma', name: 'Shawarma', icon: '🌯' });
+    }
   }, []);
 
   const handleRunMigration = async () => {
@@ -234,7 +241,7 @@ export default function Admin() {
     setFormCategory(item.category || 'pizza');
     setFormDescription(item.description || '');
     setFormAvailable(item.available !== false);
-    setFormFeatured(Boolean(item.featured));
+    setFormFeatured(Boolean(item.featured || item.show_on_homepage));
     setPreviewImage(item.image || '');
     setImageFileName('');
     setAlsoAddToGallery(false);
@@ -337,13 +344,15 @@ export default function Admin() {
       price = sPrice || Number(formPrice) || 0;
     }
 
+    const isFeatured = Boolean(formFeatured);
     const payload = {
       name: formName.trim(),
       category: formCategory,
       description: formDescription.trim(),
       image: previewImage || '',
       available: Boolean(formAvailable),
-      featured: Boolean(formFeatured),
+      featured: isFeatured,
+      show_on_homepage: isFeatured,
       price,
       sizes: isPizza ? sizes : null,
     };
@@ -950,6 +959,7 @@ export default function Admin() {
                         <th>Image</th>
                         <th>Category</th>
                         <th>Price</th>
+                        <th>Show on Homepage</th>
                         <th>Available</th>
                         <th style={{ textAlign: 'right' }}>Actions</th>
                       </tr>
@@ -957,7 +967,7 @@ export default function Admin() {
                     <tbody>
                       {filteredItems.length === 0 ? (
                         <tr>
-                          <td colSpan="6" className="admin-table__empty">
+                          <td colSpan="7" className="admin-table__empty">
                             No food items match your filter.
                           </td>
                         </tr>
@@ -972,8 +982,8 @@ export default function Admin() {
                               {item.description && (
                                 <p className="admin-food-desc">{item.description}</p>
                               )}
-                              {item.featured && (
-                                <span className="admin-badge admin-badge--featured">Specialty</span>
+                              {(item.featured || item.show_on_homepage) && (
+                                <span className="admin-badge admin-badge--featured">Featured</span>
                               )}
                             </td>
 
@@ -1036,6 +1046,32 @@ export default function Admin() {
                               ) : (
                                 <strong className="admin-single-price">₹{item.price}</strong>
                               )}
+                            </td>
+
+                            <td>
+                              <button
+                                type="button"
+                                className={`admin-toggle-btn ${(item.featured || item.show_on_homepage) ? 'admin-toggle-btn--active' : ''}`}
+                                onClick={async () => {
+                                  const res = await toggleFeatured(item.id);
+                                  const isNowFeatured = !(item.featured || item.show_on_homepage);
+                                  showNotification(
+                                    `"${item.name}" ${isNowFeatured ? 'will now show on' : 'removed from'} homepage`
+                                  );
+                                }}
+                                title="Toggle Show on Homepage"
+                                id={`toggle-featured-${item.id}`}
+                              >
+                                {(item.featured || item.show_on_homepage) ? (
+                                  <>
+                                    <Sparkles size={14} /> Shown
+                                  </>
+                                ) : (
+                                  <>
+                                    <X size={14} /> Hidden
+                                  </>
+                                )}
+                              </button>
                             </td>
 
                             <td>
@@ -1860,8 +1896,9 @@ export default function Admin() {
                       type="checkbox"
                       checked={formFeatured}
                       onChange={(e) => setFormFeatured(e.target.checked)}
+                      id="modal-featured-checkbox"
                     />
-                    <span>Feature on Home Page</span>
+                    <span>Show on Homepage</span>
                   </label>
                 </div>
               </div>

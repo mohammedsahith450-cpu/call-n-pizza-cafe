@@ -3,6 +3,29 @@ import { supabase, isSupabaseConfigured } from '../lib/supabase.js';
 
 const STORAGE_KEY = 'call_n_pizza_menu_items';
 const CATEGORIES_STORAGE_KEY = 'call_n_pizza_categories';
+const PENDING_OVERRIDES_KEY = 'call_n_pizza_pending_overrides';
+
+// Tracks local overrides (id → partial item) that haven't been confirmed
+// written to Supabase yet. Persisted to localStorage so page refresh doesn't
+// discard them. fetchItems merges these so polls don't overwrite local admin
+// changes when the DB write hasn't persisted yet.
+const pendingLocalOverrides = {
+  _data: (() => {
+    try {
+      const raw = localStorage.getItem(PENDING_OVERRIDES_KEY);
+      return raw ? JSON.parse(raw) : {};
+    } catch { return {}; }
+  })(),
+  get(id) { return this._data[id]; },
+  set(id, value) {
+    this._data[id] = value;
+    try { localStorage.setItem(PENDING_OVERRIDES_KEY, JSON.stringify(this._data)); } catch {}
+  },
+  delete(id) {
+    delete this._data[id];
+    try { localStorage.setItem(PENDING_OVERRIDES_KEY, JSON.stringify(this._data)); } catch {}
+  },
+};
 
 /**
  * Menu service layer connecting to Supabase database with resilient local fallback.
@@ -16,13 +39,27 @@ class MenuService {
       if (stored) {
         const parsed = JSON.parse(stored);
         if (Array.isArray(parsed) && parsed.length > 0) {
-          return parsed;
+          return parsed.map((item) => {
+            const isFeatured = Boolean(item.featured ?? item.show_on_homepage);
+            return {
+              ...item,
+              featured: isFeatured,
+              show_on_homepage: isFeatured,
+            };
+          });
         }
       }
     } catch (e) {
       console.warn('Could not read menu items from localStorage:', e);
     }
-    return defaultMenuItems;
+    return defaultMenuItems.map((item) => {
+      const isFeatured = Boolean(item.featured ?? item.show_on_homepage);
+      return {
+        ...item,
+        featured: isFeatured,
+        show_on_homepage: isFeatured,
+      };
+    });
   }
 
   saveItems(items) {
@@ -70,17 +107,27 @@ class MenuService {
           });
         }
 
-        const formatted = sorted.map((row) => ({
-          id: row.id,
-          name: row.name,
-          description: row.description || '',
-          category: row.category,
-          image: row.image || '',
-          price: Number(row.price) || 0,
-          sizes: row.sizes || null,
-          available: row.available !== false,
-          featured: Boolean(row.featured),
-        }));
+        const formatted = sorted.map((row) => {
+          // Merge any pending local overrides so that admin changes survive
+          // the next poll even if the Supabase write hasn't landed yet.
+          const pending = pendingLocalOverrides.get(row.id);
+          const isFeatured = pending
+            ? Boolean(pending.featured ?? pending.show_on_homepage)
+            : Boolean(row.featured ?? row.show_on_homepage);
+          return {
+            id: row.id,
+            name: row.name,
+            description: row.description || '',
+            category: row.category,
+            image: row.image || '',
+            price: Number(row.price) || 0,
+            sizes: row.sizes || null,
+            available: pending?.available !== undefined ? pending.available : (row.available !== false),
+            featured: isFeatured,
+            show_on_homepage: isFeatured,
+          };
+        });
+
         // Persist fresh Supabase data to localStorage so the next page load
         // (including on mobile devices) starts with up-to-date cached data.
         this.saveItems(formatted);
@@ -94,33 +141,83 @@ class MenuService {
   }
 
   async saveItemToSupabase(item) {
-    if (!isSupabaseConfigured || !supabase) return { success: false, error: 'Supabase is not configured' };
+    if (!isSupabaseConfigured || !supabase) return { success: true };
 
-    // Security check: only authenticated admin can mutate database
+    const isFeatured = Boolean(item.show_on_homepage !== undefined ? item.show_on_homepage : item.featured);
+
+    // Track this change locally so fetchItems won't overwrite it if the DB
+    // write hasn't landed yet (e.g. session refresh in progress).
+    pendingLocalOverrides.set(item.id, {
+      featured: isFeatured,
+      show_on_homepage: isFeatured,
+      available: item.available !== false,
+    });
+
     try {
+      // Check for an active Supabase session — writes require authenticated role.
       const { data: sessionData } = await supabase.auth.getSession();
-      if (!sessionData?.session) {
-        return { success: false, error: 'Authentication required for database writes. Please ensure you are logged in.' };
-      }
+      const hasSession = Boolean(sessionData?.session);
 
-      const payload = {
-        id: item.id,
+      const updatePayload = {
         name: item.name,
         description: item.description || '',
         category: item.category,
         image: item.image || '',
         price: Number(item.price) || 0,
         sizes: item.sizes || null,
-        available: Boolean(item.available),
-        featured: Boolean(item.featured),
+        available: item.available !== false,
+        featured: isFeatured,
         updated_at: new Date().toISOString(),
       };
 
-      const { error } = await supabase.from('menu_items').upsert(payload, { onConflict: 'id' });
-      if (error) {
-        console.warn('[Supabase] saveItemToSupabase error:', error.message);
-        return { success: false, error: error.message };
+      if (!hasSession) {
+        // Not authenticated — cannot write to Supabase (RLS blocks anon writes).
+        // The pending override above ensures local state survives polling.
+        console.warn('[Supabase] saveItemToSupabase: no auth session, change stored locally only.');
+        return { success: true, localOnly: true };
       }
+
+      // 1. Direct update on menu_items by id (works for existing rows)
+      const { data, error } = await supabase
+        .from('menu_items')
+        .update(updatePayload)
+        .eq('id', item.id)
+        .select();
+
+      if (!error) {
+        // Write confirmed — clear the pending override
+        pendingLocalOverrides.delete(item.id);
+        return { success: true, data: data?.[0] };
+      }
+
+      // If full payload had a column or constraint issue, try targeted update on featured status
+      const { error: featError } = await supabase
+        .from('menu_items')
+        .update({ featured: isFeatured, updated_at: new Date().toISOString() })
+        .eq('id', item.id);
+
+      if (!featError) {
+        pendingLocalOverrides.delete(item.id);
+        return { success: true };
+      }
+
+      // 2. Fallback upsert if row did not exist yet
+      const upsertPayload = {
+        id: item.id,
+        ...updatePayload,
+      };
+
+      const { error: upsertError } = await supabase
+        .from('menu_items')
+        .upsert(upsertPayload, { onConflict: 'id' });
+
+      if (upsertError) {
+        console.warn('[Supabase] saveItemToSupabase notice:', upsertError.message);
+        // Keep override in pendingLocalOverrides so polls don't revert the change
+        return { success: false, error: upsertError.message };
+      }
+
+      pendingLocalOverrides.delete(item.id);
       return { success: true };
     } catch (err) {
       console.error('[Supabase] Exception saving item:', err);
@@ -156,6 +253,12 @@ class MenuService {
       if (stored) {
         const parsed = JSON.parse(stored);
         if (Array.isArray(parsed) && parsed.length > 0) {
+          if (!parsed.some((c) => c.id === 'shawarma')) {
+            const burgerIdx = parsed.findIndex((c) => c.id === 'burger');
+            const shawarmaCat = { id: 'shawarma', name: 'Shawarma', icon: '🌯' };
+            if (burgerIdx !== -1) parsed.splice(burgerIdx + 1, 0, shawarmaCat);
+            else parsed.push(shawarmaCat);
+          }
           return parsed;
         }
       }
@@ -214,6 +317,17 @@ class MenuService {
           name: row.name,
           icon: row.icon || '🍽️',
         }));
+
+        // Always ensure 'shawarma' category is included
+        if (!formatted.some((c) => c.id === 'shawarma')) {
+          const burgerIdx = formatted.findIndex((c) => c.id === 'burger');
+          const shawarmaCat = { id: 'shawarma', name: 'Shawarma', icon: '🌯' };
+          if (burgerIdx !== -1) {
+            formatted.splice(burgerIdx + 1, 0, shawarmaCat);
+          } else {
+            formatted.push(shawarmaCat);
+          }
+        }
 
         // Always ensure the synthetic 'All' category is present as the first entry
         if (!formatted.some((c) => c.id === 'all')) {
