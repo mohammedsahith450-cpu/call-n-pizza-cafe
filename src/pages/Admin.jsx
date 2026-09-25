@@ -220,8 +220,10 @@ export default function Admin() {
   const handleOpenAdd = () => {
     setEditingItem(null);
     setFormName('');
-    const firstCat = categories.find((c) => c.id !== 'all')?.id || 'pizza';
-    setFormCategory(firstCat);
+    const defaultCat = (selectedCategory && selectedCategory !== 'all')
+      ? selectedCategory
+      : (categories.find((c) => c.id !== 'all')?.id || 'pizza');
+    setFormCategory(defaultCat);
     setFormDescription('');
     setFormPrice('');
     setFormSmallPrice('');
@@ -348,6 +350,7 @@ export default function Admin() {
     const payload = {
       name: formName.trim(),
       category: formCategory,
+      category_id: formCategory,
       description: formDescription.trim(),
       image: previewImage || '',
       available: Boolean(formAvailable),
@@ -399,7 +402,8 @@ export default function Admin() {
 
 
   const filteredItems = items.filter((item) => {
-    const matchesCat = selectedCategory === 'all' || item.category === selectedCategory;
+    const itemCat = item.category || item.category_id;
+    const matchesCat = selectedCategory === 'all' || itemCat === selectedCategory;
     const matchesSearch =
       item.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
       (item.description && item.description.toLowerCase().includes(searchQuery.toLowerCase()));

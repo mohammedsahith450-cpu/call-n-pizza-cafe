@@ -18,12 +18,18 @@ CREATE TABLE IF NOT EXISTS public.categories (
   created_at TIMESTAMPTZ DEFAULT now()
 );
 
+-- Ensure default Shawarma category exists
+INSERT INTO public.categories (id, name, icon)
+VALUES ('shawarma', 'Shawarma', '🌯')
+ON CONFLICT (id) DO UPDATE SET name = 'Shawarma', icon = '🌯';
+
 -- 2. MENU ITEMS TABLE
 CREATE TABLE IF NOT EXISTS public.menu_items (
   id TEXT PRIMARY KEY,
   name TEXT NOT NULL,
   description TEXT,
   category TEXT REFERENCES public.categories(id) ON DELETE SET NULL,
+  category_id TEXT REFERENCES public.categories(id) ON DELETE SET NULL,
   image TEXT,
   price NUMERIC DEFAULT 0,
   sizes JSONB,
@@ -32,6 +38,11 @@ CREATE TABLE IF NOT EXISTS public.menu_items (
   created_at TIMESTAMPTZ DEFAULT now(),
   updated_at TIMESTAMPTZ DEFAULT now()
 );
+
+-- Ensure category_id column exists if table was created previously
+ALTER TABLE public.menu_items ADD COLUMN IF NOT EXISTS category_id TEXT REFERENCES public.categories(id) ON DELETE SET NULL;
+UPDATE public.menu_items SET category_id = category WHERE category_id IS NULL AND category IS NOT NULL;
+UPDATE public.menu_items SET category = category_id WHERE category IS NULL AND category_id IS NOT NULL;
 
 -- 3. GALLERY ITEMS TABLE
 -- Uses visible boolean (frontend hidden = !visible)

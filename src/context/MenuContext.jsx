@@ -126,10 +126,13 @@ export function MenuProvider({ children }) {
     const isFeatured = updates.featured !== undefined
       ? Boolean(updates.featured)
       : (updates.show_on_homepage !== undefined ? Boolean(updates.show_on_homepage) : Boolean(existing.featured));
+    const itemCat = updates.category || updates.category_id || existing.category || existing.category_id || 'shawarma';
 
     const updatedItem = {
       ...existing,
       ...updates,
+      category: itemCat,
+      category_id: itemCat,
       featured: isFeatured,
       show_on_homepage: isFeatured,
     };
@@ -144,7 +147,14 @@ export function MenuProvider({ children }) {
     // 2. Persist to Supabase database
     const saveRes = await menuService.saveItemToSupabase(updatedItem);
     if (!saveRes?.success) {
-      console.warn('[MenuContext] Notice saving item to Supabase:', saveRes?.error);
+      console.error('[MenuContext] Error saving item to Supabase:', saveRes?.error);
+      return { success: false, error: saveRes?.error || 'Failed to update item in database' };
+    }
+
+    // 3. Immediately re-fetch confirmed items from database
+    const freshItems = await menuService.fetchItems();
+    if (freshItems) {
+      setItems(freshItems);
     }
 
     return { success: true, item: updatedItem };
@@ -153,28 +163,49 @@ export function MenuProvider({ children }) {
   const addItem = useCallback(async (newItem) => {
     const id = newItem.id || `item-${Date.now()}`;
     const isFeatured = Boolean(newItem.featured ?? newItem.show_on_homepage);
+    const itemCat = newItem.category || newItem.category_id || 'shawarma';
     const fullItem = {
       ...newItem,
       id,
+      category: itemCat,
+      category_id: itemCat,
       featured: isFeatured,
       show_on_homepage: isFeatured,
+      available: newItem.available !== false,
     };
 
+    // 1. Optimistic update
     setItems((prev) => {
-      const updated = [fullItem, ...prev];
+      const updated = [fullItem, ...prev.filter((i) => i.id !== id)];
       menuService.saveItems(updated);
       return updated;
     });
 
+    // 2. Persist to Supabase database
     const saveRes = await menuService.saveItemToSupabase(fullItem);
     if (!saveRes?.success) {
-      console.warn('[MenuContext] Notice adding item to Supabase:', saveRes?.error);
+      console.error('[MenuContext] Error adding item to Supabase:', saveRes?.error);
+      // Revert optimistic add on DB error
+      setItems((prev) => {
+        const reverted = prev.filter((i) => i.id !== id);
+        menuService.saveItems(reverted);
+        return reverted;
+      });
+      return { success: false, error: saveRes?.error || 'Database insert failed' };
+    }
+
+    // 3. Immediately re-fetch fresh items from database so new item appears verified
+    const freshItems = await menuService.fetchItems();
+    if (freshItems) {
+      setItems(freshItems);
     }
 
     return { success: true, item: fullItem };
   }, []);
 
   const deleteItem = useCallback(async (id) => {
+    const itemToDelete = items.find((i) => i.id === id);
+
     setItems((prev) => {
       const updated = prev.filter((item) => item.id !== id);
       menuService.saveItems(updated);
@@ -183,11 +214,24 @@ export function MenuProvider({ children }) {
 
     const delRes = await menuService.deleteItemFromSupabase(id);
     if (!delRes?.success) {
-      console.warn('[MenuContext] Notice deleting item from Supabase:', delRes?.error);
+      console.error('[MenuContext] Error deleting item from Supabase:', delRes?.error);
+      if (itemToDelete) {
+        setItems((prev) => {
+          const reverted = [...prev, itemToDelete];
+          menuService.saveItems(reverted);
+          return reverted;
+        });
+      }
+      return { success: false, error: delRes?.error || 'Failed to delete from database' };
+    }
+
+    const freshItems = await menuService.fetchItems();
+    if (freshItems) {
+      setItems(freshItems);
     }
 
     return { success: true };
-  }, []);
+  }, [items]);
 
   const toggleAvailability = useCallback(async (id) => {
     const existing = items.find((item) => item.id === id);

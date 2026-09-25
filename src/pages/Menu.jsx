@@ -44,7 +44,8 @@ export default function Menu() {
         return false;
       }
       if (activeCategory === 'all') return true;
-      return item.category === activeCategory;
+      const itemCat = item.category || item.category_id;
+      return itemCat === activeCategory;
     });
   }, [items, activeCategory]);
 

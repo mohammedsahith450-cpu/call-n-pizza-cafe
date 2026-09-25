@@ -41,8 +41,11 @@ class MenuService {
         if (Array.isArray(parsed) && parsed.length > 0) {
           return parsed.map((item) => {
             const isFeatured = Boolean(item.featured ?? item.show_on_homepage);
+            const itemCat = item.category || item.category_id || 'pizza';
             return {
               ...item,
+              category: itemCat,
+              category_id: itemCat,
               featured: isFeatured,
               show_on_homepage: isFeatured,
             };
@@ -54,8 +57,11 @@ class MenuService {
     }
     return defaultMenuItems.map((item) => {
       const isFeatured = Boolean(item.featured ?? item.show_on_homepage);
+      const itemCat = item.category || item.category_id || 'pizza';
       return {
         ...item,
+        category: itemCat,
+        category_id: itemCat,
         featured: isFeatured,
         show_on_homepage: isFeatured,
       };
@@ -114,11 +120,13 @@ class MenuService {
           const isFeatured = pending
             ? Boolean(pending.featured ?? pending.show_on_homepage)
             : Boolean(row.featured ?? row.show_on_homepage);
+          const itemCat = pending?.category || pending?.category_id || row.category || row.category_id || 'pizza';
           return {
             id: row.id,
             name: row.name,
             description: row.description || '',
-            category: row.category,
+            category: itemCat,
+            category_id: itemCat,
             image: row.image || '',
             price: Number(row.price) || 0,
             sizes: row.sizes || null,
@@ -144,6 +152,7 @@ class MenuService {
     if (!isSupabaseConfigured || !supabase) return { success: true };
 
     const isFeatured = Boolean(item.show_on_homepage !== undefined ? item.show_on_homepage : item.featured);
+    const itemCat = item.category || item.category_id || 'shawarma';
 
     // Track this change locally so fetchItems won't overwrite it if the DB
     // write hasn't landed yet (e.g. session refresh in progress).
@@ -151,6 +160,8 @@ class MenuService {
       featured: isFeatured,
       show_on_homepage: isFeatured,
       available: item.available !== false,
+      category: itemCat,
+      category_id: itemCat,
     });
 
     try {
@@ -158,10 +169,17 @@ class MenuService {
       const { data: sessionData } = await supabase.auth.getSession();
       const hasSession = Boolean(sessionData?.session);
 
-      const updatePayload = {
+      if (!hasSession) {
+        // Not authenticated — cannot write to Supabase (RLS blocks anon writes).
+        console.warn('[Supabase] saveItemToSupabase: no auth session, write blocked by security policy.');
+        return { success: false, error: 'Authentication required. Please log in to admin to save changes to the database.' };
+      }
+
+      const payload = {
+        id: item.id,
         name: item.name,
         description: item.description || '',
-        category: item.category,
+        category: itemCat,
         image: item.image || '',
         price: Number(item.price) || 0,
         sizes: item.sizes || null,
@@ -170,55 +188,25 @@ class MenuService {
         updated_at: new Date().toISOString(),
       };
 
-      if (!hasSession) {
-        // Not authenticated — cannot write to Supabase (RLS blocks anon writes).
-        // The pending override above ensures local state survives polling.
-        console.warn('[Supabase] saveItemToSupabase: no auth session, change stored locally only.');
-        return { success: true, localOnly: true };
-      }
-
-      // 1. Direct update on menu_items by id (works for existing rows)
+      // Perform upsert (creates new row if id does not exist, updates if it does)
       const { data, error } = await supabase
         .from('menu_items')
-        .update(updatePayload)
-        .eq('id', item.id)
+        .upsert(payload, { onConflict: 'id' })
         .select();
 
-      if (!error) {
-        // Write confirmed — clear the pending override
-        pendingLocalOverrides.delete(item.id);
-        return { success: true, data: data?.[0] };
+      if (error) {
+        console.error('[Supabase] Error saving menu item to Supabase:', error.message);
+        return { success: false, error: error.message };
       }
 
-      // If full payload had a column or constraint issue, try targeted update on featured status
-      const { error: featError } = await supabase
-        .from('menu_items')
-        .update({ featured: isFeatured, updated_at: new Date().toISOString() })
-        .eq('id', item.id);
-
-      if (!featError) {
-        pendingLocalOverrides.delete(item.id);
-        return { success: true };
+      if (!data || data.length === 0) {
+        console.error('[Supabase] No row returned from upsert');
+        return { success: false, error: 'Database did not confirm row creation.' };
       }
 
-      // 2. Fallback upsert if row did not exist yet
-      const upsertPayload = {
-        id: item.id,
-        ...updatePayload,
-      };
-
-      const { error: upsertError } = await supabase
-        .from('menu_items')
-        .upsert(upsertPayload, { onConflict: 'id' });
-
-      if (upsertError) {
-        console.warn('[Supabase] saveItemToSupabase notice:', upsertError.message);
-        // Keep override in pendingLocalOverrides so polls don't revert the change
-        return { success: false, error: upsertError.message };
-      }
-
+      // Write confirmed — clear the pending override
       pendingLocalOverrides.delete(item.id);
-      return { success: true };
+      return { success: true, data: data[0] };
     } catch (err) {
       console.error('[Supabase] Exception saving item:', err);
       return { success: false, error: err.message };
