@@ -531,15 +531,16 @@
    with !important. The shawarma button shares that class, so we must use
    !important overrides scoped to .home__shawarma-btn to restore it. */
 @media (max-width: 768px) {
-  /* Switch from overlay hero to stacked column */
+  /* Switch from overlay hero to stacked continuous promotional section */
   .home__shawarma-section {
     flex-direction: column;
     align-items: stretch;
     min-height: unset;
     overflow: hidden;
+    background: #0f172a;
   }
 
-  /* Backdrop becomes a normal-flow block at the top */
+  /* Backdrop: normal-flow block at the top, extended downward */
   .home__shawarma-backdrop {
     position: relative;
     inset: unset;
@@ -547,57 +548,92 @@
     height: auto;
     z-index: 1;
     flex-shrink: 0;
+    overflow: hidden;
   }
 
-  /* Image: full width, visible food, no cropping of the wrap */
+  /* Image: extended downward so food is prominent and reaches content */
   .home__shawarma-img {
     width: 100%;
-    height: auto;
-    aspect-ratio: 16 / 9;
+    height: clamp(260px, 72vw, 340px);
     object-fit: cover;
-    object-position: 60% center; /* keep wrap visible */
+    object-position: 65% center;
     display: block;
   }
 
-  /* Hide the gradient overlay (content is below, not on top of image) */
+  /* Smooth bottom fade on the image to blend seamlessly into content */
   .home__shawarma-overlay {
-    display: none;
+    display: block !important;
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(
+      180deg,
+      rgba(15, 23, 42, 0) 55%,
+      rgba(15, 23, 42, 0.45) 75%,
+      #0f172a 100%
+    );
+    pointer-events: none;
+    z-index: 2;
   }
 
-  /* Content panel below the image */
+  /* Content panel: seamless continuation directly below image, no large empty gap */
   .home__shawarma-container {
     position: relative;
-    z-index: 2;
+    z-index: 3;
     background: #0f172a;
-    padding: 1.5rem 1.25rem 2rem;
+    margin-top: -28px;
+    padding: 0 1rem 2rem;
     text-align: center;
     width: 100%;
     box-sizing: border-box;
   }
 
   .home__shawarma-card {
+    width: 100%;
     max-width: 100%;
     margin: 0 auto;
+    text-align: center;
+    box-sizing: border-box;
   }
 
   .home__shawarma-badge {
-    margin-bottom: 0.6rem;
-    font-size: 0.78rem;
+    margin-bottom: 0.5rem;
+    font-size: 0.76rem;
   }
 
+  /* Completely visible "SHAWARMA" title, centered, never clipped */
   .home__shawarma-title {
-    font-size: clamp(2rem, 8vw, 2.8rem);
-    margin-bottom: 0.5rem;
+    font-family: var(--font-primary, sans-serif);
+    font-size: clamp(1.65rem, 7.2vw, 2.2rem) !important;
+    font-weight: 900;
+    color: #ffffff;
+    line-height: 1.1;
+    letter-spacing: 0.01em;
+    text-align: center !important;
+    margin: 0 auto 0.45rem auto !important;
+    padding: 0 4px;
+    width: 100%;
+    max-width: 100%;
+    white-space: normal;
+    word-break: normal;
+    overflow-wrap: normal;
+    box-sizing: border-box;
+    display: block;
+    text-shadow: 0 4px 18px rgba(0, 0, 0, 0.6);
   }
 
   .home__shawarma-subtitle {
-    font-size: 0.98rem;
-    margin-bottom: 1.25rem;
+    font-size: 0.95rem;
+    color: #cbd5e1;
+    margin: 0 auto 1.25rem auto;
+    max-width: 320px;
+    line-height: 1.45;
+    text-align: center;
   }
 
   .home__shawarma-actions {
     justify-content: center;
     display: flex;
+    margin-top: 0.25rem;
   }
 
   /* ── Override the hero-btn 54×54 icon-only rules for the shawarma btn ── */
@@ -605,9 +641,9 @@
     width: auto !important;
     height: auto !important;
     min-width: unset !important;
-    min-height: 52px !important;
-    max-width: 320px;
-    padding: 15px 32px !important;
+    min-height: 50px !important;
+    max-width: 300px;
+    padding: 14px 30px !important;
     font-size: 1rem;
     border-radius: 10px !important;
     display: inline-flex !important;
@@ -627,20 +663,37 @@
   }
 }
 
-/* Extra-narrow phones (≤374px): taller image, smaller title */
+/* Extra-narrow phones (≤374px, e.g. 320px, 360px): adjusted image & title scale */
 @media (max-width: 374px) {
   .home__shawarma-img {
-    aspect-ratio: 4 / 3;
+    height: clamp(230px, 68vw, 270px);
+    object-position: 65% center;
+  }
+
+  .home__shawarma-container {
+    margin-top: -22px;
+    padding: 0 0.75rem 1.75rem;
+  }
+
+  .home__shawarma-badge {
+    font-size: 0.72rem;
+    padding: 5px 12px;
   }
 
   .home__shawarma-title {
-    font-size: 1.9rem;
+    font-size: clamp(1.45rem, 6.8vw, 1.75rem) !important;
+    letter-spacing: 0.01em;
+  }
+
+  .home__shawarma-subtitle {
+    font-size: 0.88rem;
+    margin-bottom: 1.1rem;
   }
 
   .home__shawarma-btn.hero-btn.hero-btn--order {
-    padding: 14px 24px !important;
+    padding: 13px 24px !important;
     font-size: 0.95rem;
-    max-width: 280px;
+    max-width: 270px;
   }
 }
 
