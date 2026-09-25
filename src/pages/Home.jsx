@@ -11,7 +11,6 @@ import {
   Pizza,
   BookOpen,
   PhoneCall,
-  ArrowRight,
 } from 'lucide-react';
 import restaurantConfig from '../config/restaurantConfig';
 import { useMenu } from '../context/MenuContext';
@@ -238,39 +237,7 @@ export default function Home() {
         </div>
       </section>
 
-      {/* ── 2. New Shawarma Specialty Section ────────────── */}
-      <section className="home__shawarma-section" id="shawarma-specialty">
-        <div className="home__shawarma-backdrop" aria-hidden="true">
-          <img
-            src="/images/shawarma-hero-clean.jpg"
-            alt="Call N Pizza Cafe Shawarma Specialty"
-            className="home__shawarma-img"
-          />
-          <div className="home__shawarma-overlay" />
-        </div>
-
-        <div className="container home__shawarma-container">
-          <div className="home__shawarma-card animate-fade-in-up">
-            <span className="home__shawarma-badge">OUR SPECIALTY</span>
-            <h2 className="home__shawarma-title">SHAWARMA</h2>
-            <p className="home__shawarma-subtitle">Authentic taste, unforgettable flavour</p>
-            <div className="home__shawarma-actions">
-              <Link
-                to="/menu?category=shawarma"
-                className="hero-btn hero-btn--order home__shawarma-btn"
-                id="shawarma-order-btn"
-                title="Order Shawarma Now"
-                aria-label="Order Shawarma Now"
-              >
-                <span>Order Now</span>
-                <ArrowRight size={20} />
-              </Link>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      {/* ── 3. Existing Homepage Features (Highlights) ────── */}
+      {/* ── 2. Existing Homepage Features (Highlights) ────── */}
       <section className="home__highlights-section" id="homepage-features">
         <div className="container">
           <div className="home__highlights-grid">
