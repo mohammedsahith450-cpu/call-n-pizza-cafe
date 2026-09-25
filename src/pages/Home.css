@@ -526,17 +526,20 @@
 }
 
 /* ── Mobile Shawarma Section: stacked layout ──────────── */
-/* Image sits on top uncropped; text + button below on dark bg  */
+/* Image on top (uncropped); text + button below on dark bg  */
+/* NOTE: .hero-btn mobile rules (line ~1054) force 54x54 icon-only squares
+   with !important. The shawarma button shares that class, so we must use
+   !important overrides scoped to .home__shawarma-btn to restore it. */
 @media (max-width: 768px) {
   /* Switch from overlay hero to stacked column */
   .home__shawarma-section {
     flex-direction: column;
     align-items: stretch;
     min-height: unset;
-    overflow: visible;
+    overflow: hidden;
   }
 
-  /* Backdrop becomes a normal block at the top — not absolute */
+  /* Backdrop becomes a normal-flow block at the top */
   .home__shawarma-backdrop {
     position: relative;
     inset: unset;
@@ -544,25 +547,24 @@
     height: auto;
     z-index: 1;
     flex-shrink: 0;
-    background: #0f172a;
   }
 
-  /* Image: full width, natural aspect ratio — no cropping */
+  /* Image: full width, visible food, no cropping of the wrap */
   .home__shawarma-img {
     width: 100%;
     height: auto;
     aspect-ratio: 16 / 9;
     object-fit: cover;
-    object-position: center center;
+    object-position: 60% center; /* keep wrap visible */
     display: block;
   }
 
-  /* Hide the gradient overlay on mobile (no text on top of image) */
+  /* Hide the gradient overlay (content is below, not on top of image) */
   .home__shawarma-overlay {
     display: none;
   }
 
-  /* Content panel sits below the image */
+  /* Content panel below the image */
   .home__shawarma-container {
     position: relative;
     z-index: 2;
@@ -578,7 +580,6 @@
     margin: 0 auto;
   }
 
-  /* Tighten spacing so nothing is cut off */
   .home__shawarma-badge {
     margin-bottom: 0.6rem;
     font-size: 0.78rem;
@@ -594,24 +595,39 @@
     margin-bottom: 1.25rem;
   }
 
-  /* Button: full-width, easy to tap */
   .home__shawarma-actions {
     justify-content: center;
     display: flex;
   }
 
-  .home__shawarma-btn {
-    width: 100%;
+  /* ── Override the hero-btn 54×54 icon-only rules for the shawarma btn ── */
+  .home__shawarma-btn.hero-btn.hero-btn--order {
+    width: auto !important;
+    height: auto !important;
+    min-width: unset !important;
+    min-height: 52px !important;
     max-width: 320px;
-    justify-content: center;
-    padding: 15px 24px;
+    padding: 15px 32px !important;
     font-size: 1rem;
-    border-radius: 10px;
-    min-height: 52px;
+    border-radius: 10px !important;
+    display: inline-flex !important;
+    flex-direction: row !important;
+    align-items: center !important;
+    justify-content: center !important;
+    gap: 10px !important;
+    white-space: nowrap;
+    box-sizing: border-box;
+  }
+
+  /* Ensure the "Order Now" text is visible (hero hides .hero-btn__text) */
+  .home__shawarma-btn span,
+  .home__shawarma-btn svg {
+    display: inline !important;
+    visibility: visible !important;
   }
 }
 
-/* Extra narrow phones (320–374px) */
+/* Extra-narrow phones (≤374px): taller image, smaller title */
 @media (max-width: 374px) {
   .home__shawarma-img {
     aspect-ratio: 4 / 3;
@@ -619,6 +635,12 @@
 
   .home__shawarma-title {
     font-size: 1.9rem;
+  }
+
+  .home__shawarma-btn.hero-btn.hero-btn--order {
+    padding: 14px 24px !important;
+    font-size: 0.95rem;
+    max-width: 280px;
   }
 }
 
