@@ -525,33 +525,100 @@
   transform: translateY(-2px);
 }
 
-/* Tablet & Mobile for Shawarma Section */
+/* ── Mobile Shawarma Section: stacked layout ──────────── */
+/* Image sits on top uncropped; text + button below on dark bg  */
 @media (max-width: 768px) {
+  /* Switch from overlay hero to stacked column */
   .home__shawarma-section {
-    min-height: 400px;
+    flex-direction: column;
+    align-items: stretch;
+    min-height: unset;
+    overflow: visible;
   }
+
+  /* Backdrop becomes a normal block at the top — not absolute */
+  .home__shawarma-backdrop {
+    position: relative;
+    inset: unset;
+    width: 100%;
+    height: auto;
+    z-index: 1;
+    flex-shrink: 0;
+    background: #0f172a;
+  }
+
+  /* Image: full width, natural aspect ratio — no cropping */
   .home__shawarma-img {
-    object-position: center;
+    width: 100%;
+    height: auto;
+    aspect-ratio: 16 / 9;
+    object-fit: cover;
+    object-position: center center;
+    display: block;
   }
+
+  /* Hide the gradient overlay on mobile (no text on top of image) */
   .home__shawarma-overlay {
-    background: linear-gradient(
-      180deg,
-      rgba(15, 23, 42, 0.85) 0%,
-      rgba(15, 23, 42, 0.7) 50%,
-      rgba(15, 23, 42, 0.9) 100%
-    );
+    display: none;
   }
+
+  /* Content panel sits below the image */
   .home__shawarma-container {
-    padding-top: var(--space-2xl);
-    padding-bottom: var(--space-2xl);
+    position: relative;
+    z-index: 2;
+    background: #0f172a;
+    padding: 1.5rem 1.25rem 2rem;
     text-align: center;
+    width: 100%;
+    box-sizing: border-box;
   }
+
   .home__shawarma-card {
     max-width: 100%;
     margin: 0 auto;
   }
+
+  /* Tighten spacing so nothing is cut off */
+  .home__shawarma-badge {
+    margin-bottom: 0.6rem;
+    font-size: 0.78rem;
+  }
+
+  .home__shawarma-title {
+    font-size: clamp(2rem, 8vw, 2.8rem);
+    margin-bottom: 0.5rem;
+  }
+
+  .home__shawarma-subtitle {
+    font-size: 0.98rem;
+    margin-bottom: 1.25rem;
+  }
+
+  /* Button: full-width, easy to tap */
   .home__shawarma-actions {
     justify-content: center;
+    display: flex;
+  }
+
+  .home__shawarma-btn {
+    width: 100%;
+    max-width: 320px;
+    justify-content: center;
+    padding: 15px 24px;
+    font-size: 1rem;
+    border-radius: 10px;
+    min-height: 52px;
+  }
+}
+
+/* Extra narrow phones (320–374px) */
+@media (max-width: 374px) {
+  .home__shawarma-img {
+    aspect-ratio: 4 / 3;
+  }
+
+  .home__shawarma-title {
+    font-size: 1.9rem;
   }
 }
 
